@@ -1,0 +1,168 @@
+package pro.choicemmed.datalib;
+
+
+import org.greenrobot.greendao.annotation.Entity;
+import org.greenrobot.greendao.annotation.Id;
+import org.greenrobot.greendao.annotation.Generated;
+
+@Entity
+public class EcgData {
+    @Id
+    private long id;//主键id
+    private String uuid;//uuid
+    private int userId;//用户id
+    private String ecgTime;//原始数据（其中包括测量时间，但是还有其他数据）
+    private String ecgData;//ecg数据
+    private String decodeTime;//原始ecg数据测量时间
+    private int decodeBpm;//心率
+    private int syncStatus;//是否上传
+    private String lastUpdate;//app获取到硬件设备的时间数据的时间
+    private String locale;//生成pdf报告的语言
+    private String analysisresult;
+    public boolean isChecked = false;
+    public boolean isVisibility = false;
+    public int isdelete;
+
+    public int getIsdelete() {
+        return isdelete;
+    }
+
+    public void setIsdelete(int isdelete) {
+        this.isdelete = isdelete;
+    }
+
+
+    public String toString() {
+        return " Id " + id + " uuid " + uuid + " userId " + userId + " ecgTime " + ecgTime + " decodeTime " + decodeTime +
+                " decodeBpm " + decodeBpm + " syncStatus " + syncStatus + " lastUpdate " + lastUpdate + " locale " + locale + " analysisresult " + analysisresult;
+    }
+
+
+    public EcgData() {
+    }
+
+    @Generated(hash = 694641391)
+    public EcgData(long id, String uuid, int userId, String ecgTime, String ecgData, String decodeTime, int decodeBpm, int syncStatus, String lastUpdate,
+                   String locale, String analysisresult, boolean isChecked, boolean isVisibility, int isdelete) {
+        this.id = id;
+        this.uuid = uuid;
+        this.userId = userId;
+        this.ecgTime = ecgTime;
+        this.ecgData = ecgData;
+        this.decodeTime = decodeTime;
+        this.decodeBpm = decodeBpm;
+        this.syncStatus = syncStatus;
+        this.lastUpdate = lastUpdate;
+        this.locale = locale;
+        this.analysisresult = analysisresult;
+        this.isChecked = isChecked;
+        this.isVisibility = isVisibility;
+        this.isdelete = isdelete;
+    }
+
+    public long getId() {
+        return id;
+    }
+
+    public void setId(long id) {
+        this.id = id;
+    }
+
+    public String getUuid() {
+        return uuid;
+    }
+
+    public void setUuid(String uuid) {
+        this.uuid = uuid;
+    }
+
+    public int getUserId() {
+        return userId;
+    }
+
+    public void setUserId(int userId) {
+        this.userId = userId;
+    }
+
+    public String getEcgTime() {
+        return ecgTime;
+    }
+
+    public void setEcgTime(String ecgTime) {
+        this.ecgTime = ecgTime;
+    }
+
+    public String getEcgData() {
+        return ecgData;
+    }
+
+    public void setEcgData(String ecgData) {
+        this.ecgData = ecgData;
+    }
+
+    public String getDecodeTime() {
+        return decodeTime;
+    }
+
+    public void setDecodeTime(String decodeTime) {
+        this.decodeTime = decodeTime;
+    }
+
+    public int getDecodeBpm() {
+        return decodeBpm;
+    }
+
+    public void setDecodeBpm(int decodeBpm) {
+        this.decodeBpm = decodeBpm;
+    }
+
+    public int getSyncStatus() {
+        return syncStatus;
+    }
+
+    public void setSyncStatus(int syncStatus) {
+        this.syncStatus = syncStatus;
+    }
+
+    public String getLastUpdate() {
+        return lastUpdate;
+    }
+
+    public void setLastUpdate(String lastUpdate) {
+        this.lastUpdate = lastUpdate;
+    }
+
+    public String getLocale() {
+        return locale;
+    }
+
+    public void setLocale(String locale) {
+        this.locale = locale;
+    }
+
+    public String getAnalysisresult() {
+        return analysisresult;
+    }
+
+    public void setAnalysisresult(String analysisresult) {
+        this.analysisresult = analysisresult;
+    }
+
+    public boolean getIsChecked() {
+        return this.isChecked;
+    }
+
+    public void setIsChecked(boolean isChecked) {
+        this.isChecked = isChecked;
+    }
+
+    public boolean getIsVisibility() {
+        return this.isVisibility;
+    }
+
+    public void setIsVisibility(boolean isVisibility) {
+        this.isVisibility = isVisibility;
+    }
+
+
+}

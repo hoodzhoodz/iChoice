@@ -1,0 +1,137 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head lang="en">
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+
+    <title></title>
+
+    <link href="bootstrap.min.css?v=3.3.5" rel="stylesheet">
+    <style>
+        .askRow {
+            color: #ffa500;
+            font-size: 18px;
+            line-height: 1.5;
+            margin-bottom: 5px;
+        }
+
+        .answerRow, ul li {
+            color: #141414;
+            font-size: 16px;
+            line-height: 1.4;
+        }
+
+        .m-b20 { margin-bottom: 20px; }
+
+    </style>
+</head>
+
+<body>
+
+<div class="container col-sm-12 m-b20">
+    <h2 class="askRow">How long should I wait before measurement?</h2>
+    <div class="answerRow">Calm down and relax yourself for 15 min before measurement.</div>
+    <h2 class="askRow">What's the best time to measure the blood pressure?</h2>
+    <div class="answerRow">
+        <ul>
+            <li>
+                For the people with normal blood pressure?Twice a week
+                and had better choose the fixed time between 6am~9am.
+            </li>
+            <li>For people with abnormal blood pressure Suggest twice a day and continuous for one
+                week. The measurement was conducted between 6 a.m. and 9 a.m., and again between 6
+                p.m. and 9 p.m.
+            </li>
+        </ul>
+
+    </div>
+
+
+    <h2 class="askRow">Why do I get different readings with my blood pressure monitor than those at
+        the doctor’s?</h2>
+    <div class="answerRow">
+        Blood pressure readings in hospital are usually somewhat
+        higher than the blood pressure. readings you obtain when you
+        measure it yourself in a relaxed atmosphere at home. We call
+        this "doctor's surgery" or "white coat" hypertension. People who
+        have raised blood pressure under the stress of everyday conditions
+        can have normal readings under quiet conditions at the
+        doctor's. We then speak of "doctor's surgery normotension"
+    </div>
+
+    <h2 class="askRow">Why are different readings obtained in 2 successive readings?</h2>
+    <div class="answerRow">
+        <div>
+            Blood pressure and pulse depend on many factors that can
+            have an effect even in the shortterm:
+        </div>
+        <ul>
+            <li>Physical influences</li>
+            <li>Medical influences</li>
+            <li>Physical exercise</li>
+            <li>Muscle tension</li>
+            <li>Talking</li>
+            <li>Excitement</li>
+            <li>Noise etc</li>
+        </ul>
+        <div>The way the measurement is taken is also relevant:</div>
+        <ul>
+            <li>Cuff applied too tightly / too loosely</li>
+            <li>Cuff not at heart level</li>
+            <li>Too short a break between measurements</li>
+            <li>No visual or acoustic shielding of the subject</li>
+            <li>
+                Device tolerances are also important, of course. In the case
+                of devices with a manometer, there is also parallax error
+                (error in reading the result).
+            </li>
+        </ul>
+
+    </div>
+
+    <h2 class="askRow">
+        Why are there differences between measurements on the upper
+        arm and the wrist?
+    </h2>
+    <div class="answerRow">
+        The wrist measurement must be taken with the wrist at heart
+        level. If the arm is laid flat on a table, for instance when you are
+        seated, the blood pressure is overestimated by approximately
+        7-8 mmHg because there is a difference from heart level (1.5cm
+        is equivalent to 1 mmHg).<br/>
+        Incorrect results also occur with wrist measurement in the case
+        of heart rate abnormalities and changes (e.g. due to age) in the
+        arteries of the wrist. Particularly in elderly persons,
+        wrist devices may give imprecise readings. The arteries in the
+        upper arm are not so sensitive with regard to these influences.
+        For this reason, occasional measurements on the upper arm
+        are recommended for comparison.
+    </div>
+
+    <h2 class="askRow">What are the guidelines for systolic and diastolic pressure?</h2>
+    <div class="answerRow">
+        The normal range of systolic blood pressure is 90 ~ 140mmHg,
+        diastolic blood pressure is 60 ~ 90mmHg.
+    </div>
+
+    <h2 class="askRow">
+        Is an upper arm blood pressure monitor more accurate than a
+        wrist type?
+    </h2>
+    <div class="answerRow">
+        The choice of device is basically one of convenience. Some
+        people find the compactness of a wrist blood pressure monitora
+        benefit especially if one is travelling. Others prefer the larger
+        buttons and display on the upper arm blood pressure monitors
+        (easier to use and read).
+    </div>
+
+
+</div>
+
+
+</body>
+</html>

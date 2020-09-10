@@ -1,0 +1,649 @@
+package com.choicemmed.ichoice.healthcheck.fragment.ecg;
+
+import android.annotation.SuppressLint;
+import android.app.AlertDialog;
+import android.content.Intent;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Environment;
+import android.os.Handler;
+import android.os.Message;
+import android.util.Log;
+import android.view.Gravity;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.TextView;
+
+import com.choicemmed.blelibrary.base.DeviceType;
+import com.choicemmed.blelibrary.cmd.HeartRateCmd;
+import com.choicemmed.blelibrary.cmd.HeartRateCmdListener;
+import com.choicemmed.common.ByteUtils;
+import com.choicemmed.common.FormatUtils;
+import com.choicemmed.common.LogUtils;
+import com.choicemmed.common.NetUtils;
+import com.choicemmed.common.SharePreferenceUtil;
+import com.choicemmed.common.StringUtils;
+import com.choicemmed.common.ThreadManager;
+import com.choicemmed.common.ToastUtils;
+import com.choicemmed.common.UuidUtils;
+import com.choicemmed.ichoice.R;
+import com.choicemmed.ichoice.framework.application.IchoiceApplication;
+import com.choicemmed.ichoice.framework.base.BaseFragment;
+import com.choicemmed.ichoice.framework.callback.StringDialogCallback;
+import com.choicemmed.ichoice.framework.http.Urls;
+import com.choicemmed.ichoice.framework.utils.Debugger;
+import com.choicemmed.ichoice.framework.utils.DevicesType;
+import com.choicemmed.ichoice.framework.utils.MethodsUtils;
+import com.choicemmed.ichoice.framework.utils.PermissionsUtils;
+import com.choicemmed.ichoice.healthcheck.activity.ecg.EcgAnalysisActivity;
+import com.choicemmed.ichoice.healthcheck.activity.ecg.EcgInfoBiggerActivity;
+import com.choicemmed.ichoice.healthcheck.db.DeviceOperation;
+import com.choicemmed.ichoice.healthcheck.fragment.ecg.analyzer.AnalysisResult;
+import com.choicemmed.ichoice.healthcheck.fragment.ecg.analyzer.EcgAnalyzer;
+import com.choicemmed.ichoice.healthcheck.fragment.ecg.analyzer.EcgAnalyzerResult;
+import com.choicemmed.ichoice.healthcheck.fragment.ecg.bean.AnResult;
+import com.choicemmed.ichoice.healthcheck.fragment.ecg.util.SpUtils;
+import com.choicemmed.ichoice.healthcheck.fragment.wristpulse.TipsDialogFragment;
+import com.choicemmed.ichoice.healthcheck.fragment.wristpulse.UpLoadDialogFragment;
+import com.choicemmed.ichoice.healthcheck.view.EcgScaleView;
+import com.choicemmed.ichoice.healthcheck.view.EcgView;
+import com.choicemmed.ichoice.healthcheck.view.NoPaddingTextView;
+import com.choicemmed.ichoice.healthcheck.view.ZoomControlView;
+import com.google.gson.Gson;
+import com.lzy.okgo.OkGo;
+import com.lzy.okgo.adapter.Call;
+import com.lzy.okgo.callback.StringCallback;
+import com.lzy.okgo.model.Response;
+
+
+import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedOutputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+
+import butterknife.BindView;
+import butterknife.OnClick;
+
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.RequestBody;
+import pro.choicemmed.datalib.DeviceInfo;
+import pro.choicemmed.datalib.EcgData;
+import pro.choicemmed.datalib.EcgDataDao;
+
+import static com.choicemmed.ichoice.framework.base.BaseDb.getDaoSession;
+
+/**
+ * Created by 117590 on 2020/8/20
+ */
+public class EcgMeasureFragment extends BaseFragment implements HeartRateCmdListener {
+    private String TAG = this.getClass().getSimpleName();
+    @BindView(R.id.home_vScaleView)
+    EcgScaleView homeVScaleView;
+    @BindView(R.id.home_vEcgBarView)
+    EcgView homeVEcgBarView;
+    @BindView(R.id.home_tv_scale)
+    TextView homeTvScale;
+    @BindView(R.id.home_zoomControls)
+    ZoomControlView homeZoomControls;
+    @BindView(R.id.tv_heart_rate)
+    NoPaddingTextView txvMeanRate;
+    @BindView(R.id.iv_fangdajing)
+    ImageView iv_fangdajing;
+    private boolean showZoomControls = true;
+    private float mScale = 1f;
+
+    private HeartRateCmd mHeartRateCmd;
+    private int[] ecgData;
+    private static final int MSG_CONNECT = 0;
+    private static final int MSG_REFRESH = 1;
+    private static final int MSG_SHOWTOAST = 2;
+    private UpLoadDialogFragment dialogFragment;
+    // 心电设备发送命令响应
+    private EcgData currentEcgData = new EcgData();
+
+    @SuppressLint("HandlerLeak")
+    private Handler bleHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case MSG_CONNECT:
+                    dialogFragment = new UpLoadDialogFragment();
+                    dialogFragment.setCancelable(false);
+                    dialogFragment.show(getFragmentManager(), TAG);
+                    String address = (String) msg.obj;
+                    linkDevice(address);
+                    break;
+                case MSG_REFRESH:
+                    refreshUi();
+                    uploadData();
+                    break;
+                case MSG_SHOWTOAST:
+                    int toastMsgRid = msg.arg1;
+                    if (toastMsgRid != -1) {
+                        ToastUtils.showShort(getActivity(), getString(toastMsgRid));
+                    } else {
+                        String toastMsg = (String) msg.obj;
+                        ToastUtils.showShort(getActivity(), toastMsg);
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+    };
+
+    private void linkDevice(String address) {
+        mHeartRateCmd.connectDevice(address);
+    }
+
+    @Override
+    protected int contentViewID() {
+        return R.layout.fragment_ecg_measure;
+    }
+
+    @Override
+    protected void initialize() {
+        homeVEcgBarView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (showZoomControls) {
+                    showZoomControls = false;
+                    homeZoomControls.setVisibility(View.GONE);
+                } else {
+                    showZoomControls = true;
+                    homeZoomControls.setVisibility(View.VISIBLE);
+                }
+            }
+        });
+
+        homeZoomControls.setOnButtonClicked(new ZoomControlView.OnButtonClicked() {
+            @Override
+            public void onLeftclicked() {
+                if (mScale == 0.5f) {
+                    mScale = 1;
+                    homeTvScale.setText("10mm/mV");
+                } else if (mScale == 1) {
+                    mScale = 2;
+                    homeTvScale.setText("20mm/mV");
+                    homeZoomControls.setLeftEnable(false);
+                }
+                homeZoomControls.setRightEnable(true);
+                homeVScaleView.scaleH(mScale);
+                homeVEcgBarView.scaleH(mScale);
+            }
+
+            @Override
+            public void onRightclicked() {
+                if (mScale == 2) {
+                    mScale = 1;
+                    homeTvScale.setText("10mm/mV");
+                } else if (mScale == 1) {
+                    mScale = 0.5f;
+                    homeTvScale.setText("5mm/mV");
+                    homeZoomControls.setRightEnable(false);
+                }
+                homeZoomControls.setLeftEnable(true);
+                homeVScaleView.scaleH(mScale);
+                homeVEcgBarView.scaleH(mScale);
+            }
+        });
+        mHeartRateCmd = new HeartRateCmd(getActivity(), this);
+        String timeString = FormatUtils.getDateTimeString(new Date(), FormatUtils.template_Date);
+//        List<EcgData> recordList = getDaoSession(getActivity()).getEcgDataDao().queryBuilder().where(EcgDataDao.Properties.UserId.eq(IchoiceApplication.getAppData().userProfileInfo.getUserId()), EcgDataDao.Properties.MeasureTime.like(timeString + "%")).orderDesc(EcgDataDao.Properties.MeasureTime).list();
+        List<EcgData> recordList = getDaoSession(getActivity()).getEcgDataDao().queryBuilder().where(EcgDataDao.Properties.UserId.eq(IchoiceApplication.getAppData().userProfileInfo.getUserId())).orderDesc(EcgDataDao.Properties.MeasureTime).list();
+
+        if (!recordList.isEmpty()) {
+            currentEcgData = recordList.get(0);
+            refreshUi();
+            uploadData();
+        }
+        iv_fangdajing.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (ecgData != null) {
+                    Intent intent = new Intent(getActivity(), EcgInfoBiggerActivity.class);
+                    Bundle bundle = new Bundle();
+                    bundle.putIntArray("ecgdata", ecgData);
+                    intent.putExtra("ecgbundle", bundle);
+                    startActivity(intent);
+                } else {
+                    ToastUtils.showShort(getActivity(), getString(R.string.no_data));
+                }
+            }
+        });
+
+    }
+
+    @OnClick({R.id.bt_sync, R.id.bt_analysis, R.id.bt_tips})
+    public void onClick(View view) {
+        switch (view.getId()) {
+            case R.id.bt_sync:
+                syncDevice();
+                break;
+            case R.id.bt_analysis:
+                analysis();
+                break;
+            case R.id.bt_tips:
+                tipsDialog();
+                break;
+        }
+    }
+
+    private void tipsDialog() {
+        EcgTipsDialogFragment dialogFragment = new EcgTipsDialogFragment();
+        dialogFragment.setCancelable(false);
+        dialogFragment.show(getFragmentManager(), this.getClass().getSimpleName());
+    }
+    /**
+     * 还需要测试
+     * 上传数据进行计算
+     */
+    private void analysis() {
+        final Locale locale;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            locale = getResources().getConfiguration().getLocales().get(0);
+        } else {
+            locale = getResources().getConfiguration().locale;
+        }
+        if (!NetUtils.isConnected(getActivity()) && SpUtils.getBean(getActivity(), locale.getLanguage(), currentEcgData.getUuid()) == null) {
+            ToastUtils.showShort(getActivity(), getString(R.string.no_signal));
+            return;
+        }
+        final EcgData record = currentEcgData;
+        int age = getAge(IchoiceApplication.getAppData().userProfileInfo.getBirthday());
+        String sAiparam = "/I/250/160/30/16/" + age + "/" + (IchoiceApplication.getAppData().userProfileInfo.getGender()) + "/" + IchoiceApplication.getAppData().userProfileInfo.getHeight() + "/" + IchoiceApplication.getAppData().userProfileInfo.getWeight() + "/0" + "/0";
+        Log.e("wangsj", "analysis: " + sAiparam);
+        Log.e("wangsj", "EcgData: " + record.getEcgData());
+
+        int[] anResult;
+        if (record.getEcgTime().toLowerCase().startsWith("55aa61")) {
+            anResult = uncompressP10bEcgData(record.getEcgData());
+        } else {
+            anResult = uncompressA12bEcgData(record.getEcgData());
+        }
+
+
+        boolean dat = write("/ichoice/ecg", "uploadFile.dat", anResult);
+        if (!dat) {
+            LogUtils.d(TAG, " 写文件失败");
+            return;
+        }
+
+        float[] ecgValues = new float[7500];
+        for (int i = 0; i < anResult.length; i++) {
+            if (record.getEcgTime().toLowerCase().startsWith("55aa61")) {
+                ecgValues[i] = (anResult[i] - 2048f) / 264;
+            } else { // A12-B
+                ecgValues[i] = (anResult[i] - 512f) / 149;
+            }
+        }
+
+        EcgAnalyzerResult ecgAnalyzerResult = EcgAnalyzer.analyze(ecgValues);
+        if (ecgAnalyzerResult != null) {
+            LogUtils.d(TAG, " ecgAnalyzerResult " + ecgAnalyzerResult.toString());
+        } else {
+            LogUtils.d(TAG, " ecgAnalyzerResult ==null ");
+            return;
+        }
+        AnalysisResult analysisResult = new AnalysisResult();
+        analysisResult.setHR(record.getDecodeBpm() + "");
+        analysisResult.setAvaRR(ecgAnalyzerResult.getRr_average() + "");
+        analysisResult.setMaxRR(ecgAnalyzerResult.getRr_max() + "");
+        analysisResult.setMinRR(ecgAnalyzerResult.getRr_min() + "");
+        analysisResult.setSDNN(ecgAnalyzerResult.getSdnn() + "");
+        analysisResult.setStartTime(record.getMeasureTime());
+        if (record.getEcgTime().toLowerCase().startsWith("55aa61")) {
+            analysisResult.setBaseLine(2048);
+        } else {
+            analysisResult.setBaseLine(512);
+        }
+        record.setLocale(locale.getLanguage());
+        Gson gson = new Gson();
+        String analysisResultjson = gson.toJson(analysisResult);
+        record.setAnalysisresult(analysisResultjson);
+        String userId = "6096";
+        File file = new File(Environment.getExternalStorageDirectory().getPath() + "/ichoice/ecg/uploadFile.dat");
+        String language = locale.getLanguage();
+        AnResult result1 = SpUtils.getBean(getActivity(), language, currentEcgData.getUuid());
+
+        if (result1 != null && (IchoiceApplication.localelan == "" ? false : result1.getLocale().equals(language))) {
+            if (result1.getQuality().equals("good")) {
+                result1.getObservation().setHr(record.getDecodeBpm());
+                IchoiceApplication.thisResult = result1;
+                IchoiceApplication.pageUrl = result1.getPageurl();
+                IchoiceApplication.pdfurl = result1.getPdfurl();
+                startActivity(EcgAnalysisActivity.class);
+                LogUtils.d(TAG, "本地已经存在分析结果 " + "  返回 ");
+                return;
+            }
+        }
+        IchoiceApplication.localelan = locale.getLanguage();
+        OkGo.<String>post(Urls.DownLodaEcgResult).tag(getActivity())
+                .params("aiparam", sAiparam)
+                .params("uuid", record.getUuid())
+                .params("userid", userId)
+                .params("uploadFile", file, file.getName(), MediaType.parse("file/dat"))
+                .params("locale", record.getLocale())
+                .params("analysisresult", record.getAnalysisresult())
+                .execute(new StringCallback() {
+                    @Override
+                    public void onSuccess(Response<String> response) {
+                        try {
+                            AnResult anResult = new Gson().fromJson(response.body(), AnResult.class);
+                            if (anResult != null && anResult.getQuality().equals("good")) {
+                                anResult.getObservation().setHr(record.getDecodeBpm());
+                                IchoiceApplication.thisResult = anResult;
+                                String language = locale.getLanguage();
+                                SpUtils.putBean(getActivity(), language, currentEcgData.getUuid(), anResult);
+                                IchoiceApplication.pageUrl = anResult.getPageurl();
+                                IchoiceApplication.pdfurl = anResult.getPdfurl();
+                                IchoiceApplication.ecgData = currentEcgData;
+                                startActivity(EcgAnalysisActivity.class);
+                                LogUtils.d(TAG, "onSuccess*** " + response.body());
+                            }
+                        } catch (Exception e) {
+                            LogUtils.d(TAG, "Exception*** " + "  解析失败 ");
+                        }
+
+                    }
+                });
+    }
+
+    public boolean write(String path, String fileName, int[] data) {
+        File sdPath = Environment.getExternalStorageDirectory();
+        try {
+            File file = new File(sdPath.getPath() + path);
+            if (!file.exists()) {
+                file.mkdirs();
+            }
+            File f = new File(sdPath.getPath() + path, fileName);
+            FileOutputStream fos = new FileOutputStream(f);
+            DataOutputStream dos = new DataOutputStream(new BufferedOutputStream(fos));
+            int len = data.length;
+            for (int i = 0; i < len; i++) {
+                dos.writeChar(data[i]);
+            }
+            dos.flush();
+            dos.close();
+            fos.close();
+        } catch (IOException e) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * 根据生日计算年龄
+     *
+     * @param birthDay 生日
+     * @return 年龄
+     */
+    public int getAge(String birthDay) {
+        Date date = FormatUtils.parseDate(birthDay, FormatUtils.template_Date);
+        Calendar cal = Calendar.getInstance();
+        if (date == null || cal.before(date)) {
+            return -1;
+        }
+        int yearNow = cal.get(Calendar.YEAR);
+        int monthNow = cal.get(Calendar.MONTH);
+        int dayOfMonthNow = cal.get(Calendar.DAY_OF_MONTH);
+        cal.setTime(date);
+
+        int yearBirth = cal.get(Calendar.YEAR);
+        int monthBirth = cal.get(Calendar.MONTH);
+        int dayOfMonthBirth = cal.get(Calendar.DAY_OF_MONTH);
+
+        int age = yearNow - yearBirth;
+        return monthNow <= monthBirth ? (monthNow == monthBirth ? age : --age) : age;
+
+    }
+    private void syncDevice() {
+        List<DeviceInfo> devices = new DeviceOperation(IchoiceApplication.getInstance()).queryByUserIdType(IchoiceApplication.getAppData().userProfileInfo.getUserId(),
+                DevicesType.Ecg);
+
+        if (devices.isEmpty()) {
+            LogUtils.d(TAG, " 没有绑定设备 ");
+            return;
+        }
+        if (!PermissionsUtils.isBluetoothPermission(getContext())) {
+            MethodsUtils.showErrorTip(getActivity(), getString(R.string.not_bluetooth));
+            return;
+        }
+
+        if (devices.get(0).getDeviceName().contains(DevicesType.A12_DEVICE_NAME)) {
+            com.choicemmed.blelibrary.utils.FormatUtils.IsA12 = true;
+        } else {
+            com.choicemmed.blelibrary.utils.FormatUtils.IsA12 = false;
+        }
+        LogUtils.d(TAG, "   IsA12 " + com.choicemmed.blelibrary.utils.FormatUtils.IsA12 + " getDeviceName " + devices.get(0).getDeviceName());
+        bleHandler.obtainMessage(MSG_CONNECT, devices.get(0).getBluetoothId()).sendToTarget();
+    }
+
+    private void refreshUi() {
+        if (currentEcgData == null) {
+            return;
+        }
+        txvMeanRate.setText(currentEcgData.getDecodeBpm() + "");
+        if (currentEcgData.getEcgTime().toLowerCase().startsWith("55aa61")) {
+            IchoiceApplication.type = "P10";
+        } else {
+            IchoiceApplication.type = "A12";
+        }
+
+        if ("A12".equals(IchoiceApplication.type)) {
+            if (!"".equals(currentEcgData.getEcgData())) {
+                ecgData = uncompressA12bEcgData(currentEcgData.getEcgData());
+            }
+        } else if ("P10".equals(IchoiceApplication.type)) {
+            ecgData = uncompressP10bEcgData(currentEcgData.getEcgData());
+        }
+        homeVEcgBarView.redrawEcg(ecgData);
+    }
+
+
+    private void uploadData() {
+        ThreadManager.execute(new Runnable() {
+            @Override
+            public void run() {
+                if (NetUtils.isConnected(getActivity())) {
+                    upLoadEcgData();
+                }
+            }
+
+
+        });
+    }
+
+    private void upLoadEcgData() {
+        List<EcgData> recordList = getDaoSession(getActivity()).getEcgDataDao().queryBuilder().where(EcgDataDao.Properties.UserId.eq(IchoiceApplication.getAppData().userProfileInfo.getUserId()), EcgDataDao.Properties.UpLoadFlag.eq(0)).orderDesc(EcgDataDao.Properties.MeasureTime).list();
+        if (!recordList.isEmpty()) {
+            for (EcgData ecgData : recordList) {
+                dataTransfer(ecgData);
+            }
+        }
+    }
+
+    private void dataTransfer(final EcgData record) {
+//        String userId =record.getUserId();
+//        6096
+//
+        String userId = "6096";
+        LogUtils.d(TAG, "userId***  " + userId);
+        String password = IchoiceApplication.getAppData().userProfileInfo.getPassword();
+        String md5Pwd = new String(Hex.encodeHex(DigestUtils.md5(password)));
+        String uc = userId + "#" + "" + "#" + md5Pwd;//拼接用户信息串 Charset.forName("UTF-8")
+        String ucBase64 = android.util.Base64.encodeToString(uc.getBytes(), android.util.Base64.DEFAULT);
+        OkGo.<String>post(Urls.UploadEcgData).tag(getActivity())
+                .params("uc", ucBase64)
+                .params("uuid", record.getUuid())
+                .params("recorddate", record.getMeasureTime())
+                .params("nowtime", FormatUtils.getDateTimeString(Calendar.getInstance().getTime(), FormatUtils.template_DbDateTime))
+                .params("ecgdata", record.getEcgData())
+                .params("sn", "33333333")
+                .params("did", "107")
+                .params("devicetype", "3")
+                .params("checktype", "2")
+                .params("ecgtimestr", record.getEcgTime())
+                .execute(new StringCallback() {
+                    @Override
+                    public void onSuccess(Response<String> response) {
+                        LogUtils.d(TAG, "onSuccess*** " + response.body() + "  " + response.message() + " " + response.code());
+                    }
+                });
+        LogUtils.d(TAG, "params: time " + record.getMeasureTime() + "  userid " + userId + " " + record.getUserId());
+    }
+
+
+
+
+    public static int[] uncompressP10bEcgData(String ecgDataString) {
+        if (ecgDataString.length() != 22512) {
+            return null;
+        }
+        String ecgDataStringWithoutCmd = ecgDataString.substring(10, 22510);
+        int[] result = new int[7500];
+        for (int i = 0; i < result.length; i++) {
+            result[i] = Integer.parseInt(ecgDataStringWithoutCmd.substring(i * 3, i * 3 + 3), 16);
+        }
+        return result;
+    }
+
+    public static int[] uncompressA12bEcgData(String ecgDataString) {
+        String compressedEcgDataString = ecgDataString.substring(6, 15036);
+        if (compressedEcgDataString == null || compressedEcgDataString.isEmpty()) {
+            return null;
+        }
+        ArrayList<Byte> compressedEcgData = ByteUtils.hexString2List(compressedEcgDataString);
+        ArrayList<Integer> ecgData = new ArrayList<Integer>();
+        for (int i = 0; i < 15; i++) {
+            // 每501个字节传输500个数据
+            int start = i * 501;
+            int end = start + 501;
+            List<Byte> partialData = compressedEcgData.subList(start, end);
+
+            for (int j = 0; j < 500; j++) {
+                if (j == 0) {
+                    int ecgPoint = ((partialData.get(j) & 0xff) << 8)
+                            + ((partialData.get(j + 1) & 0xff));
+                    ecgData.add(ecgPoint);
+                } else {
+                    if ((partialData.get(j + 1) & 0xff) < 128) {
+                        // A(n+1) < 128:B(n) = B(n-1) + A(n+1)
+                        int ecgPoint = ecgData.get(ecgData.size() - 1)
+                                + (partialData.get(j + 1) & 0xff);
+                        ecgData.add(ecgPoint);
+                    } else {
+                        // A(n+1) >= 128:B(n) = B(n-1) - A(n+1) +128
+                        int ecgPoint = ecgData.get(ecgData.size() - 1)
+                                - (partialData.get(j + 1) & 0xff) + 128;
+                        ecgData.add(ecgPoint);
+                    }
+                }
+            }
+        }
+
+        int[] result = new int[ecgData.size()];
+        for (int i = 0; i < ecgData.size(); i++) {
+            result[i] = ecgData.get(i);
+        }
+        return result;
+    }
+
+
+    @Override
+    public void onFoundDevice(DeviceType deviceType, String address, String deviceName) {
+
+    }
+
+    @Override
+    public void onScanTimeout(DeviceType deviceType) {
+        if (dialogFragment != null && !dialogFragment.isAnimation()) {
+            dialogFragment.linkState(false);
+        }
+        bleHandler.obtainMessage(MSG_SHOWTOAST, R.string.error_scan_timeout, -1, null).sendToTarget();
+        LogUtils.d(TAG, " onScanTimeout ");
+    }
+
+    @Override
+    public void onError(DeviceType deviceType, String errorMsg) {
+        if (dialogFragment != null && !dialogFragment.isAnimation()) {
+            dialogFragment.linkState(false);
+        }
+        bleHandler.obtainMessage(MSG_SHOWTOAST, -1, -1, errorMsg).sendToTarget();
+        LogUtils.d(TAG, " onError " + "  deviceType " + deviceType + "  errorMsg " + errorMsg);
+    }
+
+    @Override
+    public void onDisconnected(DeviceType deviceType) {
+        if (dialogFragment != null && !dialogFragment.isAnimation()) {
+            dialogFragment.linkState(false);
+        }
+        LogUtils.d(TAG, " onDisconnected ");
+    }
+
+    @Override
+    public void onLoadBegin() {
+        currentEcgData = new EcgData();
+        LogUtils.d(TAG, " onLoadBegin ");
+    }
+
+    @Override
+    public void onRecordInfoResponse(String recordInfo, String measureTime, int ecgHeartRate, int ecgResult, String ecgErrorCode) {
+        currentEcgData = new EcgData();
+        currentEcgData.setEcgTime(recordInfo);
+        currentEcgData.setMeasureTime(measureTime);
+        currentEcgData.setDecodeBpm(ecgHeartRate);
+        LogUtils.d(TAG, " onRecordInfoResponse " + currentEcgData.toString());
+    }
+
+    @Override
+    public boolean onEcgDataResponse(String ecgData) {
+        currentEcgData.setEcgData(ecgData);
+        currentEcgData.setUuid(UuidUtils.getUuid());
+        currentEcgData.setUserId(IchoiceApplication.getAppData().userProfileInfo.getUserId());
+        String now = com.choicemmed.blelibrary.utils.FormatUtils.getDateTimeString(new Date(), com.choicemmed.blelibrary.utils.FormatUtils.template_DbDateTime);
+        currentEcgData.setLastUpdateTime(now);
+        LogUtils.d(TAG, " onEcgDataResponse ecgData " + ecgData);
+        return getDaoSession(getActivity()).getEcgDataDao().insert(currentEcgData) != -1;
+    }
+
+    @Override
+    public void onLoadEnd(boolean success, String errorMsg, String type) {
+//        IchoiceApplication.type = type;
+        Log.e("wangsj", "onLoadEnd: " + success);
+        if (!success) {
+            bleHandler.obtainMessage(MSG_SHOWTOAST, -1, -1, errorMsg).sendToTarget();
+            if (dialogFragment != null && !dialogFragment.isAnimation()) {
+                dialogFragment.linkState(false);
+            }
+        } else {
+            if (!StringUtils.isEmpty(currentEcgData.getEcgData())) {
+                bleHandler.obtainMessage(MSG_REFRESH).sendToTarget();
+
+            } else {
+                bleHandler.obtainMessage(MSG_SHOWTOAST, -1, -1, getString(R.string.error_null_device_data)).sendToTarget();
+            }
+            if (dialogFragment != null && !dialogFragment.isAnimation()) {
+                dialogFragment.linkState(true);
+            }
+        }
+        LogUtils.d(TAG, " onLoadEnd  " + success);
+    }
+}

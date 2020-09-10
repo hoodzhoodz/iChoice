@@ -1,0 +1,721 @@
+package com.choicemmed.ichoice.healthreport.fragment;
+
+
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.graphics.Color;
+import android.os.Build;
+import android.os.Bundle;
+import android.support.annotation.RequiresApi;
+import android.support.v7.widget.CardView;
+import android.util.Log;
+import android.view.View;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+
+import com.choicemmed.common.DateUtils;
+import com.choicemmed.common.FormatUtils;
+import com.choicemmed.common.LogUtils;
+import com.choicemmed.common.SharePreferenceUtil;
+import com.choicemmed.ichoice.R;
+import com.choicemmed.ichoice.framework.application.IchoiceApplication;
+import com.choicemmed.ichoice.framework.base.BaseFragment;
+import com.choicemmed.ichoice.healthcheck.activity.CalenderSelectActivity;
+import com.choicemmed.ichoice.healthcheck.custom.DayOfMouthFormatter;
+import com.choicemmed.ichoice.healthcheck.custom.MouthFormatter;
+import com.choicemmed.ichoice.healthcheck.db.Cbp1k1Operation;
+import com.choicemmed.ichoice.healthcheck.db.DeviceDisplayOperation;
+import com.choicemmed.ichoice.healthcheck.db.OxSpotOperation;
+import com.choicemmed.ichoice.healthcheck.db.TemperatureOperation;
+import com.choicemmed.ichoice.healthcheck.entity.AvgData;
+import com.choicemmed.ichoice.framework.utils.DevicesType;
+import com.choicemmed.ichoice.healthcheck.entity.AvgOxData;
+import com.choicemmed.ichoice.healthreport.commend.AvgDataUtils;
+import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.Description;
+import com.github.mikephil.charting.components.Legend;
+import com.github.mikephil.charting.components.XAxis;
+import com.github.mikephil.charting.components.YAxis;
+import com.github.mikephil.charting.data.Entry;
+import com.github.mikephil.charting.data.LineData;
+import com.github.mikephil.charting.data.LineDataSet;
+import com.prolificinteractive.materialcalendarview.CalendarDay;
+
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import butterknife.BindView;
+import butterknife.OnClick;
+import pro.choicemmed.datalib.CFT308Data;
+import pro.choicemmed.datalib.Cbp1k1Data;
+import pro.choicemmed.datalib.DeviceDisplay;
+import pro.choicemmed.datalib.OxSpotData;
+
+import static com.choicemmed.common.FormatUtils.template_Date;
+import static com.choicemmed.common.FormatUtils.template_DbDateTime;
+
+public class MonthFragment extends BaseFragment {
+    private String TAG = this.getClass().getSimpleName();
+    @BindView(R.id.month_year)
+    TextView tv_year;
+    @BindView(R.id.month_month)
+    TextView tv_month;
+    @BindView(R.id.month_left)
+    ImageView calendar_left;
+    @BindView(R.id.month_right)
+    ImageView calendar_right;
+    @BindView(R.id.month_chart)
+    LineChart chart;
+    @BindView(R.id.bp_month_line)
+    CardView bp_line;
+
+    @BindView(R.id.temp_chart)
+    LineChart temp_chart;
+    @BindView(R.id.temp_card_view)
+    CardView temp_card_view;
+    @BindView(R.id.tv_unit)
+    TextView tv_unit;
+
+
+    /**
+     * 血氧仪历史记录趋势图
+     */
+    @BindView(R.id.ll_pulse_oximeter_trend)
+    LinearLayout llPulseOximeterTrend;
+    @BindView(R.id.ox_spo2_chart)
+    LineChart spo2Chart;
+    @BindView(R.id.ox_pr_chart)
+    LineChart prChart;
+    @BindView(R.id.ox_rr_chart)
+    LineChart rrChart;
+    private Cbp1k1Operation cbp1k1Operation;
+    private Calendar calendar;
+    private static String beginDate = FormatUtils.getDateTimeString(new Date(), FormatUtils.template_DbDateTime);
+    private OxSpotOperation oxSpotOperation;
+    Map<Integer, AvgOxData> avgOxDataMap = new HashMap<>();
+    List<AvgData> avgDataList = new ArrayList<>();
+    private int unit;
+    TemperatureOperation temperatureOperation;
+    Map<String, CFT308Data> cft308DataHashMapC = new HashMap<>();
+    Map<Integer, CFT308Data> cft308DataMap = new HashMap<>();
+    List<Entry> entriesUnitC = new ArrayList<>();
+    List<Entry> entriesUnitF = new ArrayList<>();
+    Calendar beginCalendar;
+    private Calendar endCalendar = Calendar.getInstance();
+    int xValueMax;
+    BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            try {
+                int year = intent.getIntExtra("year", CalendarDay.today().getYear());
+                int month = intent.getIntExtra("month", CalendarDay.today().getMonth());
+                int day = intent.getIntExtra("day", CalendarDay.today().getDay());
+                calendar.set(year, month, day);
+                setTextDate(calendar);
+                setBpChartData();
+                setPulseOximeterChartData();
+                MoveToTempChart(calendar);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    };
+
+    @Override
+    protected int contentViewID() {
+        return R.layout.fragment_month2;
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    @Override
+    protected void initialize() {
+        initData();
+        initReceiver();
+        setTextDate(calendar);
+        initLine();
+    }
+
+    private void initData() {
+        unit = (int) SharePreferenceUtil.get(getActivity(), "temp_unit", 1);
+        temperatureOperation = new TemperatureOperation(getContext());
+        calendar = Calendar.getInstance();
+        beginDate = FormatUtils.getDateTimeString(Long.parseLong(IchoiceApplication.getAppData().userProfileInfo.getSignupDateTime().substring(6, IchoiceApplication.getAppData().userProfileInfo.getSignupDateTime().length() - 2)), FormatUtils.template_DbDateTime);
+        beginCalendar = DateUtils.strToCalendar(beginDate);
+        beginCalendar.set(Calendar.DAY_OF_MONTH, 1);
+        beginCalendar.set(Calendar.HOUR_OF_DAY, 0);
+        beginCalendar.set(Calendar.MINUTE, 0);
+        beginCalendar.set(Calendar.SECOND, 0);
+
+        endCalendar.setTimeInMillis(calendar.getTimeInMillis());
+        endCalendar.add(Calendar.MONTH, 1);
+        endCalendar.set(Calendar.DAY_OF_MONTH, 1);
+        endCalendar.set(Calendar.HOUR_OF_DAY, 0);
+        endCalendar.set(Calendar.MINUTE, 0);
+        endCalendar.set(Calendar.SECOND, 0);
+        LogUtils.d(TAG, "beginCalendar  " + FormatUtils.getDateTimeString1(beginCalendar.getTimeInMillis(), template_DbDateTime) + " endCalendar " + FormatUtils.getDateTimeString1(endCalendar.getTimeInMillis(), template_DbDateTime));
+        xValueMax = DateUtils.differentDayCalendar(beginCalendar, endCalendar);
+    }
+
+    private void initReceiver() {
+        IntentFilter intentFilter = new IntentFilter("CalenderSelect");
+        getActivity().registerReceiver(broadcastReceiver, intentFilter);
+    }
+
+    private void initLine() {
+        DeviceDisplayOperation deviceDisplayOperation = new DeviceDisplayOperation(getActivity());
+        DeviceDisplay deviceDisplay = deviceDisplayOperation.queryByUserId(IchoiceApplication.getAppData().userProfileInfo.getUserId());
+        if (deviceDisplay == null) {
+            bp_line.setVisibility(View.GONE);
+            llPulseOximeterTrend.setVisibility(View.GONE);
+            temp_card_view.setVisibility(View.GONE);
+            return;
+        }
+
+        if (deviceDisplay.getThermometer() == 0) {
+            temp_card_view.setVisibility(View.GONE);
+        } else {
+            temp_card_view.setVisibility(View.VISIBLE);
+            initTempChart();
+            setTempChartData();
+        }
+        if (deviceDisplay.getBloodPressure() == 0) {
+            bp_line.setVisibility(View.GONE);
+        } else {
+            bp_line.setVisibility(View.VISIBLE);
+            initBpChart();
+            setBpChartData();
+        }
+
+        if (deviceDisplay.getPulseOximeter() == 0){
+            llPulseOximeterTrend.setVisibility(View.GONE);
+        }else{
+            llPulseOximeterTrend.setVisibility(View.VISIBLE);
+            initPulseOximeterChart();
+            setPulseOximeterChartData();
+        }
+    }
+
+    private void setTempChartData() {
+        List<CFT308Data> cft308DataList = temperatureOperation.queryAVGDataByDay(IchoiceApplication.getAppData().userProfileInfo.getUserId());
+        if (!cft308DataList.isEmpty()) {
+            for (int i = 0; i < cft308DataList.size(); i++) {
+                long nh = 1000 * 60 * 60 * 24;//一天的毫秒数
+
+                String startTime = cft308DataList.get(i).getMeasureTime();
+                Calendar calendar1 = Calendar.getInstance();
+                calendar1.setTime(FormatUtils.parseDate(startTime, template_DbDateTime));
+                int startX = (int) ((calendar1.getTimeInMillis() - beginCalendar.getTimeInMillis()) / (nh));//计算差多少天
+                LogUtils.d(TAG, "startX" + startX + "  getTemp  " + cft308DataList.get(i).getTemp());
+                entriesUnitC.add(new Entry(startX, Float.parseFloat(cft308DataList.get(i).getTemp())));
+                cft308DataMap.put(startX, cft308DataList.get(i));
+                String f = String.valueOf((Float.parseFloat(cft308DataList.get(i).getTemp()) * 9 / 5) + 32);
+                DecimalFormat df = new DecimalFormat("#.0");
+                df.setRoundingMode(RoundingMode.DOWN);
+                f = df.format(Float.parseFloat(f));
+                entriesUnitF.add(new Entry(startX, Float.parseFloat(f)));
+                String everyDayLastMeasureTime = FormatUtils.getDateTimeString1(calendar1.getTimeInMillis(), template_Date);
+                cft308DataHashMapC.put(everyDayLastMeasureTime, cft308DataList.get(i));
+                LogUtils.d(TAG, "everyDayLastMeasureTime   " + everyDayLastMeasureTime);
+            }
+        }
+        calculationYValue();
+        MoveToTempChart(calendar);
+    }
+
+    private void MoveToTempChart(Calendar calendar1) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(calendar1.getTimeInMillis());
+        calendar.set(Calendar.DAY_OF_MONTH, 1);
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        long nh = 1000 * 60 * 60 * 24;//一天的毫秒数
+        int startX = (int) ((calendar.getTimeInMillis() - beginCalendar.getTimeInMillis()) / nh);//计算差多少天
+        Log.d(TAG, "MoveToTempChart    " + FormatUtils.getDateTimeString(calendar.getTimeInMillis(), FormatUtils.template_DbDateTime) + " startX " + startX);
+        temp_chart.moveViewToX(startX);
+    }
+
+    private void calculationYValue() {
+        if (unit == 1) {
+            tv_unit.setText(getString(R.string.temp_unit));
+            YAxis leftAxis = temp_chart.getAxisLeft();
+            leftAxis.setAxisMaximum(43);
+            leftAxis.setAxisMinimum(32);
+            leftAxis.setLabelCount(5);
+            YAxis rightAxis = temp_chart.getAxisRight();
+            rightAxis.setAxisMaximum(43);
+            rightAxis.setAxisMinimum(32);
+            rightAxis.setLabelCount(5);
+        } else {
+            tv_unit.setText(getString(R.string.temp_unit1));
+            YAxis leftAxis = temp_chart.getAxisLeft();
+            leftAxis.setAxisMaximum(110);
+            leftAxis.setAxisMinimum(85);
+            leftAxis.setLabelCount(5);
+            YAxis rightAxis = temp_chart.getAxisRight();
+            rightAxis.setAxisMaximum(110);
+            rightAxis.setAxisMinimum(85);
+            rightAxis.setLabelCount(5);
+        }
+        LineDataSet dataSet;
+        if (temp_chart.getData() != null && temp_chart.getData().getDataSetCount() > 0) {
+            dataSet = (LineDataSet) temp_chart.getData().getDataSetByIndex(0);
+            if (unit == 1) {
+                dataSet.setValues(entriesUnitC);
+            } else {
+                dataSet.setValues(entriesUnitF);
+            }
+            temp_chart.getData().notifyDataChanged();
+            temp_chart.notifyDataSetChanged();
+        } else {
+            if (unit == 1) {
+                dataSet = new LineDataSet(entriesUnitC, "");
+            } else {
+                dataSet = new LineDataSet(entriesUnitF, "");
+            }
+            int colorId = getActivity().getResources().getColor(R.color.blue_8c9eff);
+            dataSet.setDrawCircleHole(false);
+            dataSet.setColor(colorId);
+            dataSet.setCircleColor(colorId);
+            dataSet.setLineWidth(1f);
+            dataSet.setCircleSize(3f);
+            LineData spo2Data = new LineData(dataSet);
+            temp_chart.setData(spo2Data);
+        }
+
+        temp_chart.invalidate();
+    }
+
+    private void initTempChart() {
+        temp_chart.setBackgroundColor(Color.WHITE);
+        temp_chart.setDrawGridBackground(true);
+        temp_chart.setDrawBorders(false);
+        temp_chart.setGridBackgroundColor(Color.WHITE);
+        temp_chart.getDescription().setEnabled(false);
+        temp_chart.setScaleEnabled(false);
+        temp_chart.getAxisRight().setEnabled(false);
+        temp_chart.setDragEnabled(false);
+
+        XAxis xAxis = temp_chart.getXAxis();
+        xAxis.setTextSize(12f);
+        xAxis.setAxisMinimum(0f);
+        xAxis.setAxisMaximum(xValueMax);
+        DayOfMouthFormatter dayOfMouthFormatter = new DayOfMouthFormatter(beginCalendar);
+        xAxis.setValueFormatter(dayOfMouthFormatter);
+        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+        temp_chart.setVisibleXRange(0, 31);
+        xAxis.setLabelCount(31);
+        Description description = new Description();
+        description.setText("(h)");
+        temp_chart.setDescription(description);
+        Legend legend = temp_chart.getLegend();
+        legend.setEnabled(false);
+
+        //90~100 间隔2
+        YAxis leftAxis = temp_chart.getAxisLeft();
+        leftAxis.setAxisMaximum(43);
+        leftAxis.setAxisMinimum(32);
+        leftAxis.setLabelCount(5);
+        YAxis rightAxis = temp_chart.getAxisRight();
+        rightAxis.setAxisMaximum(43);
+        rightAxis.setAxisMinimum(32);
+        rightAxis.setLabelCount(5);
+    }
+
+    private void setPulseOximeterChartData() {
+        Calendar calendar1 = Calendar.getInstance();
+        calendar1.setTime(calendar.getTime());
+        List<Entry> spo2List = new ArrayList<>();
+        List<Entry> prList = new ArrayList<>();
+        List<Entry> rrList = new ArrayList<>();
+        List<AvgOxData> avgOxDataList = new ArrayList<>();
+        calendar1.set(calendar1.get(Calendar.YEAR), calendar1.get(Calendar.MONTH), 1, 0, 0, 0);
+        int currentMonth = calendar1.get(Calendar.MONTH);
+        oxSpotOperation = new OxSpotOperation(getContext());
+        for (int i = 0; i <= 4; i++) {
+            if ((calendar1.get(Calendar.MONTH)) != currentMonth) {
+                break;
+            }
+            int day = calendar1.get(Calendar.DAY_OF_WEEK);
+            if (day != 1) {
+                calendar1.add(Calendar.DATE, (Calendar.SATURDAY - day) + 1);
+            }
+
+            String beginTime = FormatUtils.getDateTimeString(calendar1.getTime(), FormatUtils.template_Date);
+            calendar1.add(Calendar.DATE, 7);
+            String endTime = FormatUtils.getDateTimeString(calendar1.getTime(), FormatUtils.template_Date);
+            Log.d("weekTime", i + "|" + beginTime + "|" + endTime);
+            List<OxSpotData> oxSpotDataList = oxSpotOperation.queryToMonth(IchoiceApplication.getAppData().userProfileInfo.getUserId(), beginTime, endTime);
+            if (oxSpotDataList != null) {
+                AvgOxData avgOxData = AvgDataUtils.getAvgOxData(oxSpotDataList);
+                avgOxDataMap.put(i, avgOxData);
+                avgOxDataList.add(avgOxData);
+                spo2List.add(new Entry(i, avgOxData.getSpO2Avg()));
+                prList.add(new Entry(i, avgOxData.getPRAvg()));
+                Log.d("weekTime", i + "|" + avgOxData + "|" + avgOxData.toString());
+                if (avgOxData.getRRAvg() > 0) {
+                    rrList.add(new Entry(i, avgOxData.getRRAvg()));
+                }
+            }
+        }
+
+        //图表数据填充
+        LineDataSet spo2Set, prSet, rrSet;
+        int colorId = getActivity().getResources().getColor(R.color.pulse_oximeter_blue);
+        if (spo2Chart.getData() != null && spo2Chart.getData().getDataSetCount() > 0) {
+            Log.d("weekTime", spo2Chart.getData().getDataSetCount() + "");
+            spo2Set = (LineDataSet) spo2Chart.getData().getDataSetByIndex(0);
+            for (Entry entry : spo2Set.getValues()) {
+                Log.d("weekTime", entry.toString());
+            }
+            spo2Set.setValues(spo2List);
+            for (Entry entry : spo2Set.getValues()) {
+                Log.d("weekTime", entry.toString());
+            }
+
+            spo2Chart.getData().notifyDataChanged();
+            spo2Chart.notifyDataSetChanged();
+        } else {
+            spo2Set = new LineDataSet(spo2List, "spo2");
+            spo2Set.setDrawCircleHole(false);
+            spo2Set.setColor(colorId);
+            spo2Set.setCircleColor(colorId);
+            spo2Set.setLineWidth(1f);
+            spo2Set.setCircleSize(3f);
+            LineData spo2Data = new LineData(spo2Set);
+            spo2Chart.setData(spo2Data);
+        }
+
+        if (prChart.getData() != null && prChart.getData().getDataSetCount() > 0) {
+            prSet = (LineDataSet) prChart.getData().getDataSetByIndex(0);
+            prSet.setValues(prList);
+            prChart.getData().notifyDataChanged();
+            prChart.notifyDataSetChanged();
+        } else {
+            prSet = new LineDataSet(prList, "");
+            prSet.setColor(colorId);
+            prSet.setCircleColor(colorId);
+            prSet.setDrawCircleHole(false);
+            prSet.setLineWidth(1f);
+            prSet.setCircleSize(3f);
+            LineData prData = new LineData(prSet);
+            prChart.setData(prData);
+        }
+
+        if (rrChart.getData() != null && rrChart.getData().getDataSetCount() > 0) {
+            rrSet = (LineDataSet) rrChart.getData().getDataSetByIndex(0);
+            rrSet.setValues(rrList);
+            rrChart.getData().notifyDataChanged();
+            rrChart.notifyDataSetChanged();
+        } else {
+            rrSet = new LineDataSet(rrList, "");
+            rrSet.setColor(colorId);
+            rrSet.setCircleColor(colorId);
+            rrSet.setDrawCircleHole(false);
+            rrSet.setLineWidth(1f);
+            rrSet.setCircleSize(3f);
+            LineData rrData = new LineData(rrSet);
+            rrChart.setData(rrData);
+        }
+
+        //刷新图表，显示数据
+        spo2Chart.invalidate();
+        prChart.invalidate();
+        rrChart.invalidate();
+
+    }
+
+    private void initPulseOximeterChart() {
+        initSpO2Chart();
+        initPRChart();
+        initRRChart();
+    }
+
+    /**
+     * 初始化Spo2折线图
+     */
+    private void initSpO2Chart() {
+        spo2Chart.setBackgroundColor(Color.WHITE);
+        spo2Chart.setDrawGridBackground(true);
+        spo2Chart.setDrawBorders(false);
+        spo2Chart.setGridBackgroundColor(Color.WHITE);
+        spo2Chart.getDescription().setEnabled(false);
+        spo2Chart.setScaleEnabled(false);
+        spo2Chart.getAxisRight().setEnabled(false);
+        spo2Chart.setTouchEnabled(false);
+
+        XAxis xAxis = spo2Chart.getXAxis();
+        xAxis.setTextSize(12f);
+        xAxis.setAxisMinimum(0f);
+        xAxis.setAxisMaximum(4f);
+
+        xAxis.setValueFormatter(new MouthFormatter(getString(R.string.week)));
+        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+        spo2Chart.setVisibleXRange(0, 4);
+        xAxis.setLabelCount(4);
+        xAxis.setAvoidFirstLastClipping(true);
+        Legend legend = spo2Chart.getLegend();
+        legend.setEnabled(false);
+
+        //90~100 间隔2
+        YAxis leftAxis = spo2Chart.getAxisLeft();
+        leftAxis.setAxisMaximum(100);
+        leftAxis.setAxisMinimum(90);
+        leftAxis.setLabelCount(5);
+        YAxis rightAxis = spo2Chart.getAxisRight();
+        rightAxis.setAxisMaximum(100);
+        rightAxis.setAxisMinimum(90);
+        rightAxis.setLabelCount(5);
+    }
+
+    /**
+     * 初始化PR折线图
+     */
+    private void initPRChart() {
+        prChart.setBackgroundColor(Color.WHITE);
+        prChart.setDrawGridBackground(true);
+        prChart.setDrawBorders(false);
+        prChart.setGridBackgroundColor(Color.WHITE);
+        prChart.getDescription().setEnabled(false);
+        prChart.setScaleEnabled(false);
+        prChart.getAxisRight().setEnabled(false);
+        prChart.setTouchEnabled(false);
+
+        XAxis xAxis_pr = prChart.getXAxis();
+        xAxis_pr.setTextSize(12f);
+        xAxis_pr.setAxisMinimum(0f);
+        xAxis_pr.setAxisMaximum(4f);
+
+        xAxis_pr.setValueFormatter(new MouthFormatter(getString(R.string.week)));
+        xAxis_pr.setPosition(XAxis.XAxisPosition.BOTTOM);
+        prChart.setVisibleXRange(0, 4);
+        xAxis_pr.setLabelCount(4);
+        xAxis_pr.setAvoidFirstLastClipping(true);
+        Legend legend = prChart.getLegend();
+        legend.setEnabled(false);
+
+        //50~120 间隔10
+        YAxis leftAxis_pr = prChart.getAxisLeft();
+        leftAxis_pr.setAxisMaximum(120);
+        leftAxis_pr.setAxisMinimum(50);
+        leftAxis_pr.setLabelCount(7);
+        YAxis rightAxis_pr = prChart.getAxisRight();
+        rightAxis_pr.setAxisMaximum(120);
+        rightAxis_pr.setAxisMinimum(50);
+        rightAxis_pr.setLabelCount(7);
+
+    }
+
+    /**
+     * 初始化RR折线图
+     */
+    private void initRRChart() {
+        rrChart.setBackgroundColor(Color.WHITE);
+        rrChart.setDrawGridBackground(true);
+        rrChart.setDrawBorders(false);
+        rrChart.setGridBackgroundColor(Color.WHITE);
+        rrChart.getDescription().setEnabled(false);
+        rrChart.setScaleEnabled(false);
+        rrChart.getAxisRight().setEnabled(false);
+        rrChart.setTouchEnabled(false);
+
+        //24小时 间隔2h
+        XAxis xAxis_pr = rrChart.getXAxis();
+        xAxis_pr.setTextSize(12f);
+        xAxis_pr.setAxisMinimum(0f);
+        xAxis_pr.setAxisMaximum(4f);
+
+        xAxis_pr.setValueFormatter(new MouthFormatter(getString(R.string.week)));
+        xAxis_pr.setPosition(XAxis.XAxisPosition.BOTTOM);
+        rrChart.setVisibleXRange(0, 4);
+        xAxis_pr.setLabelCount(4);
+        xAxis_pr.setAvoidFirstLastClipping(true);
+        Legend legend = rrChart.getLegend();
+        legend.setEnabled(false);
+
+        //0~70 间隔10
+        YAxis leftAxis_rr = rrChart.getAxisLeft();
+        leftAxis_rr.setAxisMaximum(80);
+        leftAxis_rr.setAxisMinimum(0);
+        leftAxis_rr.setLabelCount(8);
+        YAxis rightAxis_rr = rrChart.getAxisRight();
+        rightAxis_rr.setAxisMaximum(80);
+        rightAxis_rr.setAxisMinimum(0);
+        rightAxis_rr.setLabelCount(8);
+
+    }
+
+    private void setBpChartData() {
+        Calendar calendar1 = Calendar.getInstance();
+        calendar1.setTime(calendar.getTime());
+        List<Entry> SysEntries = new ArrayList<>();
+        List<Entry> DiaEntries = new ArrayList<>();
+        cbp1k1Operation = new Cbp1k1Operation(getContext());
+        calendar1.set(calendar1.get(Calendar.YEAR), calendar1.get(Calendar.MONTH), 1, 0, 0, 0);
+        int currentMonth = calendar1.get(Calendar.MONTH);
+        oxSpotOperation = new OxSpotOperation(getContext());
+        for (int i = 0; i <= 4; i++) {
+            if ((calendar1.get(Calendar.MONTH)) != currentMonth) {
+                break;
+            }
+            int day = calendar1.get(Calendar.DAY_OF_WEEK);
+            if (day != 1) {
+                calendar1.add(Calendar.DATE, (Calendar.SATURDAY - day) + 1);
+            }
+            String beginTime = FormatUtils.getDateTimeString(calendar1.getTime(), FormatUtils.template_Date);
+            calendar1.add(Calendar.DATE, 7);
+            String endTime = FormatUtils.getDateTimeString(calendar1.getTime(), FormatUtils.template_Date);
+            Log.d("weekTime", i + "|" + beginTime + "|" + endTime);
+            List<Cbp1k1Data> cbp1k1DataList = cbp1k1Operation.queryToMonth(IchoiceApplication.getAppData().userProfileInfo.getUserId(), beginTime, endTime);
+            if (cbp1k1DataList != null) {
+                AvgData avgData = AvgDataUtils.getavgData(cbp1k1DataList);
+                avgDataList.add(avgData);
+                SysEntries.add(new Entry(i, avgData.getSysAvg()));
+                DiaEntries.add(new Entry(i, avgData.getDiaAvg()));
+            }
+        }
+        LineDataSet sysSet, diaSet;
+        if (chart.getData() != null &&
+                chart.getData().getDataSetCount() > 0) {
+            sysSet = (LineDataSet) chart.getData().getDataSetByIndex(0);
+            diaSet = (LineDataSet) chart.getData().getDataSetByIndex(1);
+            sysSet.setValues(SysEntries);
+            diaSet.setValues(DiaEntries);
+            chart.getData().notifyDataChanged();
+            chart.notifyDataSetChanged();
+
+        } else {
+            sysSet = new LineDataSet(SysEntries, "SYS");
+            sysSet.setDrawCircleHole(false);
+            sysSet.setColor(Color.rgb(255, 128, 0));
+            sysSet.setCircleColor(Color.rgb(255, 128, 0));
+            sysSet.setCircleSize(5f);
+            sysSet.setLineWidth(3f);
+
+            diaSet = new LineDataSet(DiaEntries, "DIA");
+            diaSet.setColor(Color.rgb(65, 105, 225));
+            diaSet.setCircleColor(Color.rgb(65, 105, 225));
+            diaSet.setDrawCircleHole(false);
+            diaSet.setLineWidth(3f);
+            diaSet.setCircleSize(5f);
+
+            LineData data = new LineData(sysSet, diaSet);
+            chart.setData(data);
+
+        }
+        chart.invalidate();
+
+    }
+
+    private void initBpChart() {
+        chart.setBackgroundColor(Color.WHITE);
+        chart.setDrawGridBackground(true);
+        chart.setDrawBorders(false);
+        chart.setGridBackgroundColor(Color.WHITE);
+        chart.getDescription().setEnabled(false);
+        chart.setScaleEnabled(false);
+        chart.getAxisRight().setEnabled(false);
+        chart.setTouchEnabled(false);
+
+        XAxis xAxis = chart.getXAxis();
+        xAxis.setTextSize(12f);
+        xAxis.setAxisMinimum(0f);
+        xAxis.setAxisMaximum(4f);
+
+        xAxis.setValueFormatter(new MouthFormatter(getString(R.string.week)));
+        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+        chart.setVisibleXRange(0, 4);
+        xAxis.setLabelCount(4);
+
+        YAxis leftAxis = chart.getAxisLeft();
+        leftAxis.setAxisMaximum(210);
+        leftAxis.setAxisMinimum(0);
+        leftAxis.setLabelCount(8, true);
+        YAxis rightAxis = chart.getAxisRight();
+        rightAxis.setAxisMaximum(210);
+        rightAxis.setAxisMinimum(0);
+        rightAxis.setLabelCount(8, true);
+    }
+
+    private void setTextDate(Calendar calendar) {
+        tv_year.setText(calendar.get(Calendar.YEAR) + "");
+        tv_month.setText(calendar.get(Calendar.MONTH) + 1 + "");
+        changeArrowImage(calendar);
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    @OnClick({R.id.month_right, R.id.month_left, R.id.month_select})
+    public void onClick(View view) {
+        switch (view.getId()) {
+            case R.id.month_left:
+                Calendar beginCalendar = DateUtils.strToCalendar(beginDate);
+                if (isMonth(calendar, beginCalendar) || calendar.before(beginCalendar)) {
+                    return;
+                }
+                calendar.add(Calendar.MONTH, -1);
+                setTextDate(calendar);
+
+                setPulseOximeterChartData();
+                setBpChartData();
+                MoveToTempChart(calendar);
+                break;
+
+            case R.id.month_right:
+                if (isMonth(calendar, Calendar.getInstance()) || calendar.after(Calendar.getInstance())) {
+                    return;
+                }
+                calendar.add(Calendar.MONTH, 1);
+                setTextDate(calendar);
+                setPulseOximeterChartData();
+                setBpChartData();
+                MoveToTempChart(calendar);
+                break;
+
+            case R.id.month_select:
+                Bundle bundle = new Bundle();
+                bundle.putInt("type", DevicesType.All);
+                startActivity(CalenderSelectActivity.class, bundle);
+                getActivity().overridePendingTransition(R.anim.bottom_in, R.anim.bottom_silent);
+                break;
+            default:
+        }
+    }
+    public void changeArrowImage(Calendar calendar) {
+        Calendar beginCalendar = DateUtils.strToCalendar(beginDate);
+        LogUtils.d(TAG, " calendar.getTimeInMillis()  " + FormatUtils.getDateTimeString(calendar.getTimeInMillis(), template_DbDateTime));
+        if (isMonth(calendar, beginCalendar)) {
+            calendar_left.setImageResource(R.mipmap.left_gay);
+        } else {
+            calendar_left.setImageResource(R.mipmap.calendar_left);
+        }
+        if (isMonth(calendar, Calendar.getInstance())) {
+            calendar_right.setImageResource(R.mipmap.right_gay);
+        } else {
+            calendar_right.setImageResource(R.mipmap.arrow_right);
+        }
+    }
+    public boolean isMonth(Calendar c, Calendar calendar1) {
+        int year = calendar1.get(Calendar.YEAR);
+        int month = calendar1.get(Calendar.MONTH);
+        if (c.get(Calendar.YEAR) == year && c.get(Calendar.MONTH) == month) {
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        getActivity().unregisterReceiver(broadcastReceiver);
+    }
+
+}

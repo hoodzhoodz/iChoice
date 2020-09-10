@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.choicemmed.ichoice">
+
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <uses-permission android:name="android.permission.WRITE_CALENDAR" />
+    <!--    <uses-permission android:name="android.permission.READ_CONTACTS" />-->
+    <!--    <uses-permission android:name="android.permission.READ_PHONE_STATE" />-->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!--    <uses-permission android:name="android.permission.CALL_PHONE" />-->
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.SYSTEM_OVERLAY_WINDOW" />
+
+    <application
+        android:name=".framework.application.IchoiceApplication"
+        android:allowBackup="true"
+        android:icon="@mipmap/icon"
+        android:label="@string/app_name"
+        android:largeHeap="true"
+        android:supportsRtl="true"
+        android:theme="@style/MyAppTheme">
+        <service
+            android:name=".healthcheck.service.W628BleConService"
+            android:enabled="true"
+            android:exported="true"></service>
+
+        <service
+            android:name="com.choicemmed.ichoice.healthcheck.service.C208BleConService"
+            android:enabled="true"
+            android:exported="true"></service>
+
+        <activity android:name=".healthcheck.activity.wristpulse.ResultWpoW628Activity" />
+        <activity android:name=".healthcheck.activity.wristpulse.SearchDeviceW628Activity" />
+        <activity android:name=".healthcheck.activity.wristpulse.DeviceSettingWpoActivity" />
+        <activity android:name=".healthcheck.activity.wristpulse.ReportWpoActivity" />
+        <activity android:name="com.choicemmed.ichoice.healthcheck.activity.wristpulse.SearchDeviceActivity" />
+        <activity android:name="com.choicemmed.ichoice.healthcheck.activity.wristpulse.InfraredThermometerActivity" />
+        <activity android:name="com.choicemmed.ichoice.healthcheck.activity.wristpulse.DeviceSettingTempActivity"></activity>
+        <activity android:name="com.choicemmed.ichoice.profile.activity.WebViewActivity"></activity>
+        <activity android:name=".healthcheck.activity.pulseoximeter.DeviceSettingOXActivity" />
+        <activity
+            android:name=".healthcheck.activity.CalenderActivity"
+            android:theme="@style/calenderTheme"></activity>
+
+        <service
+            android:name=".healthcheck.service.W314BleConService"
+            android:enabled="true"
+            android:exported="true" />
+        <service
+            android:name="com.choicemmed.ichoice.healthcheck.service.BleConService"
+            android:enabled="true"
+            android:exported="true" />
+        <service
+            android:name="com.choicemmed.ichoice.healthcheck.service.C208sBleConService"
+            android:enabled="true"
+            android:exported="true" />
+        <service
+            android:name="com.choicemmed.ichoice.healthcheck.service.C218RBleConService"
+            android:enabled="true"
+            android:exported="true" />
+
+        <activity android:name="com.choicemmed.ichoice.healthcheck.activity.wristpulse.ResultWpoW314Activity" />
+        <activity android:name="com.choicemmed.ichoice.healthcheck.activity.wristpulse.SearchDeviceW314b4Activity" />
+        <activity android:name="com.choicemmed.ichoice.healthcheck.activity.wristpulse.DevicesSelectActivity" />
+
+        <service
+            android:name="com.choicemmed.ichoice.healthcheck.service.BpBleConService"
+            android:hardwareAccelerated="false" />
+
+        <activity
+            android:name="com.choicemmed.ichoice.healthcheck.activity.CalenderSelectActivity"
+            android:theme="@style/calenderTheme" />
+        <activity android:name="com.choicemmed.ichoice.healthcheck.activity.bloodpressure.UnitBpActivity" />
+        <activity android:name="com.choicemmed.ichoice.healthcheck.activity.bloodpressure.DeviceSettingbpActivity" />
+        <activity android:name="com.choicemmed.ichoice.healthcheck.activity.bloodpressure.ResultBpActivity" />
+        <activity android:name="com.choicemmed.ichoice.healthcheck.activity.FailureActivity" />
+        <activity android:name="com.choicemmed.ichoice.healthcheck.activity.SuccessActivity" />
+        <activity android:name="com.choicemmed.ichoice.healthcheck.activity.bloodpressure.SearchDeviceCbp1k1Activity" />
+        <activity android:name="com.choicemmed.ichoice.healthcheck.activity.ConnectDeviceActivity" />
+        <activity android:name="com.choicemmed.ichoice.healthcheck.activity.bloodpressure.DevicesSelectBpActivity" />
+        <activity android:name="com.choicemmed.ichoice.initalization.activity.WelcomeActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity android:name="com.choicemmed.ichoice.initalization.activity.MainActivity" />
+        <activity android:name="com.choicemmed.ichoice.initalization.activity.LoginActivity" />
+        <activity android:name="com.choicemmed.ichoice.initalization.activity.GuideActivity" />
+        <activity android:name="com.choicemmed.ichoice.initalization.activity.GenderActivity" />
+        <activity android:name="com.choicemmed.ichoice.initalization.activity.RegisterActivity" />
+        <activity android:name="com.choicemmed.ichoice.initalization.activity.ForgetUserNameActivity" />
+        <activity android:name="com.choicemmed.ichoice.initalization.activity.UserNameActivity" />
+        <activity android:name="com.choicemmed.ichoice.initalization.activity.AvatarActivity" />
+        <activity android:name="com.choicemmed.ichoice.initalization.activity.ForgetPwdActivity" />
+        <activity android:name="com.choicemmed.ichoice.initalization.activity.PersonalInfoActivity" />
+        <activity android:name="com.choicemmed.ichoice.healthcheck.activity.DevicesActivity" />
+        <activity android:name="com.choicemmed.ichoice.profile.activity.SettingsActivity" />
+        <activity android:name="com.choicemmed.ichoice.profile.activity.PasswordActivity" />
+        <activity android:name="com.choicemmed.ichoice.profile.activity.InformationActivity" />
+        <activity android:name="com.choicemmed.ichoice.healthcheck.activity.AddDevicesActivity" />
+        <activity android:name="com.choicemmed.ichoice.healthcheck.activity.SearchDevicesActivity" />
+        <activity android:name=".healthcheck.adddevice.activity.DeviceSelectActivity" />
+        <activity android:name=".healthcheck.adddevice.activity.DeviceConnectTipActivity" />
+        <activity android:name=".healthcheck.adddevice.activity.ox.SearchDeviceOXActivity" />
+        <activity android:name=".healthcheck.activity.pulseoximeter.ResultPOSpotCheckActivity" />
+        <activity android:name=".healthcheck.adddevice.activity.DeviceBindSuccessActivity" />
+        <activity android:name=".healthcheck.activity.pulseoximeter.C208sMeasureActivity" />
+        <activity android:name=".healthcheck.fragment.pulseoximeter.OXRealCheckChartActivity" />
+        <activity android:name=".healthcheck.activity.ecg.EcgCheckActivity"></activity>
+        <activity android:name=".healthcheck.activity.ecg.EcgAnalysisActivity"></activity>
+        <activity
+            android:name=".healthcheck.activity.ecg.EcgInfoBiggerActivity"
+            android:configChanges="screenSize|keyboardHidden|orientation"
+            android:screenOrientation="landscape"
+            android:windowSoftInputMode="adjustUnspecified|stateHidden" />
+    </application>
+
+</manifest>

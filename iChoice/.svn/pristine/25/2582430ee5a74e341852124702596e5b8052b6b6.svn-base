@@ -1,0 +1,1 @@
+include ':app', ':common', ':imagepicker', ':datalib', ':CBP1K1SDKblelibrary', ':MPChartLib', ':library', ':WristPulseOximeterlibrary'

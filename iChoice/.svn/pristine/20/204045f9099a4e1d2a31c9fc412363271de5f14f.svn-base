@@ -1,0 +1,153 @@
+package com.choicemmed.ichoice.healthcheck.adapter;
+
+import android.content.Context;
+import android.support.v7.widget.RecyclerView;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+
+import com.choicemmed.common.LogUtils;
+import com.choicemmed.ichoice.R;
+import com.choicemmed.ichoice.framework.utils.DevicesType;
+import com.lzy.imagepicker.bean.ImageItem;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * 项目名称：iChoice
+ * 类描述：图片选择的Adapter
+ * 创建人：114100
+ * 创建时间：2019/4/3 15:28
+ * 修改人：114100
+ * 修改时间：2019/4/3 15:28
+ * 修改备注：
+ */
+public class ImagePickerAdapter extends RecyclerView.Adapter<ImagePickerAdapter.SelectedPicViewHolder> {
+    private static String TAG = "ImagePickerAdapter";
+    private Context mContext;
+    private List<ImageItem> mData;
+    private LayoutInflater mInflater;
+    private OnRecyclerViewItemClickListener listener;
+
+    public interface OnRecyclerViewItemClickListener {
+        void onItemClick(View view, String name, boolean binding);
+    }
+
+    public void setOnItemClickListener(OnRecyclerViewItemClickListener listener) {
+        this.listener = listener;
+    }
+
+    public void setImages(List<ImageItem> data) {
+        mData = new ArrayList<>(data);
+        notifyDataSetChanged();
+    }
+
+
+    public ImagePickerAdapter(Context mContext, List<ImageItem> data) {
+        this.mContext = mContext;
+        this.mInflater = LayoutInflater.from(mContext);
+        setImages(data);
+    }
+
+    @Override
+    public SelectedPicViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+        int parentWidth = parent.getWidth();
+        View view = mInflater.inflate(R.layout.list_item_image, parent, false);
+        ViewGroup.LayoutParams layoutParams = view.getLayoutParams();
+        layoutParams.width = (parentWidth / 3);
+        layoutParams.height = layoutParams.width;
+        return new SelectedPicViewHolder(view);
+    }
+
+    @Override
+    public void onBindViewHolder(SelectedPicViewHolder holder, int position) {
+        holder.bind(position);
+    }
+
+    @Override
+    public int getItemCount() {
+        return mData.size();
+    }
+
+    public class SelectedPicViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
+
+        private ImageView iv_img;
+        private TextView tvName;
+        private String clickName;
+        private boolean bindingState;
+
+
+        public SelectedPicViewHolder(View itemView) {
+            super(itemView);
+            iv_img = itemView.findViewById(R.id.iv_img);
+            tvName = itemView.findViewById(R.id.tv_list_item);
+        }
+
+        public void bind(int position) {
+            //设置条目的点击事件
+            itemView.setOnClickListener(this);
+            //根据条目位置设置图片
+            ImageItem item = mData.get(position);
+            LogUtils.d(TAG, item.toString());
+            if (mContext.getString(R.string.blood_pressure).equals(item.getName())) {
+                    iv_img.setImageDrawable(mContext.getResources().getDrawable(R.mipmap.blood_pressure_ico));
+                    tvName.setVisibility(View.VISIBLE);
+                    tvName.setText(item.getName());
+            } else if (mContext.getString(R.string.ecg).equals(item.getName())) {
+                    iv_img.setImageDrawable(mContext.getResources().getDrawable(R.mipmap.big_ecg_ico));
+                    tvName.setVisibility(View.VISIBLE);
+                    tvName.setText(item.getName());
+
+                } else if (mContext.getString(R.string.pulse_qximeter).equals(item.getName())) {
+                    iv_img.setImageDrawable(mContext.getResources().getDrawable(R.mipmap.big_pulse_oximeter));
+                    tvName.setVisibility(View.VISIBLE);
+                    tvName.setText(item.getName());
+
+                } else if (mContext.getString(R.string.wrist_pulse_oximeter).equals(item.getName())) {
+                    iv_img.setImageDrawable(mContext.getResources().getDrawable(R.mipmap.big_sleep_monitor));
+                    tvName.setVisibility(View.VISIBLE);
+                    tvName.setText(item.getName());
+
+            } else if (mContext.getString(R.string.therometer).equals(item.getName())) {
+                iv_img.setImageDrawable(mContext.getResources().getDrawable(R.mipmap.big_thermometer2));
+                    tvName.setVisibility(View.VISIBLE);
+                    tvName.setText(item.getName());
+
+            } else if (mContext.getString(R.string.scale).equals(item.getName())) {
+                    iv_img.setImageDrawable(mContext.getResources().getDrawable(R.mipmap.big_scale));
+                    tvName.setVisibility(View.VISIBLE);
+                    tvName.setText(item.getName());
+
+            } else if (mContext.getString(R.string.fitness_tracker).equals(item.getName())) {
+                    iv_img.setImageDrawable(mContext.getResources().getDrawable(R.mipmap.big_fitness_tracker));
+                    tvName.setVisibility(View.VISIBLE);
+                    tvName.setText(item.getName());
+                } else if (mContext.getString(R.string.hrv).equals(item.getName())) {
+                iv_img.setImageDrawable(mContext.getResources().getDrawable(R.mipmap.hrv));
+                tvName.setVisibility(View.VISIBLE);
+                tvName.setText(item.getName());
+            }
+            clickName = item.getName();
+            if (item.getMimeType() == DevicesType.DEVICE_BINGDING) {
+                bindingState = true;
+            } else {
+                bindingState = false;
+                if (!mContext.getString(R.string.hrv).equals(item.getName())) {
+                    iv_img.setAlpha(0.5f);
+                }
+                tvName.setTextColor(mContext.getResources().getColor(R.color.bottom_hint));
+            }
+        }
+
+        @Override
+        public void onClick(View v) {
+            if (listener != null) {
+                listener.onItemClick(v, clickName, bindingState);
+            }
+        }
+    }
+}

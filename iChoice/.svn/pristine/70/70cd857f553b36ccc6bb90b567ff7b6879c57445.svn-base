@@ -1,0 +1,20 @@
+package com.choicemmed.ichoice.healthcheck.fragment.pulseoximeter;
+
+import com.choicemmed.ichoice.R;
+import com.choicemmed.ichoice.framework.base.BaseFragment;
+
+/**
+ * @author Garans
+ * TODO 血氧数据月显示
+ */
+public class OxMonthFragment extends BaseFragment {
+    @Override
+    protected int contentViewID() {
+        return R.layout.fragment_ox_spot_month_trend;
+    }
+
+    @Override
+    protected void initialize() {
+
+    }
+}

@@ -1,0 +1,20 @@
+package com.choicemmed.ichoice.healthcheck.activity.pulseoximeter;
+
+import com.choicemmed.ichoice.framework.base.BaseActivty;
+
+public class DeviceSettingOXActivity extends BaseActivty {
+    @Override
+    protected int contentViewID() {
+        return 0;
+    }
+
+    @Override
+    protected void initialize() {
+
+    }
+
+    @Override
+    public void onPointerCaptureChanged(boolean hasCapture) {
+
+    }
+}

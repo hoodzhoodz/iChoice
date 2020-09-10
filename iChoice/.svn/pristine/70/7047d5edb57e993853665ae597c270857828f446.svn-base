@@ -1,0 +1,269 @@
+package com.choicemmed.ichoice.healthcheck.adddevice.activity.ox;
+
+import android.Manifest;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothManager;
+import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Handler;
+import android.support.annotation.NonNull;
+import android.support.v4.content.ContextCompat;
+import android.util.Log;
+import android.widget.ImageView;
+
+import com.choice.c208sdkblelibrary.base.DeviceType;
+import com.choice.c208sdkblelibrary.cmd.callback.C208BindDeviceCallback;
+import com.choice.c208sdkblelibrary.cmd.callback.C208ConnectCallback;
+import com.choice.c208sdkblelibrary.cmd.invoker.C208Invoker;
+import com.choice.c208sdkblelibrary.device.C208;
+import com.choice.c208sdkblelibrary.utils.ErrorCode;
+import com.choicemmed.common.FormatUtils;
+import com.choicemmed.common.LogUtils;
+import com.choicemmed.common.UuidUtils;
+import com.choicemmed.ichoice.R;
+import com.choicemmed.ichoice.framework.application.App;
+import com.choicemmed.ichoice.framework.base.BaseActivty;
+import com.choicemmed.ichoice.healthcheck.activity.FailureActivity;
+import com.choicemmed.ichoice.healthcheck.activity.SuccessActivity;
+import com.choicemmed.ichoice.healthcheck.adddevice.entity.DeviceIconvo;
+import com.choicemmed.ichoice.healthcheck.presenter.SaveDeviceInfoPresenter;
+import com.choicemmed.ichoice.healthcheck.view.ISaveDeviceInfoView;
+
+import java.util.Date;
+
+import pro.choicemmed.datalib.DeviceDisplay;
+import pro.choicemmed.datalib.DeviceInfo;
+
+import com.choicemmed.ichoice.healthcheck.entity.DevicesType;
+import com.choicemmed.ichoice.initalization.activity.MainActivity;
+
+public class SearchDeviceOXActivity extends BaseActivty implements ISaveDeviceInfoView {
+    private static final String TAG = "SearchDeviceOXSActivity";
+    private static final int REQUEST_LOCATION_PERMISSION_CODE = 0x01;
+    private C208Invoker c208Invoker;
+    private String address = "";
+    private C208 c208Device;
+    private int deviceType = 1;
+    private String deviceName = "";
+    private SaveDeviceInfoPresenter mSaveDeviceInfoPresenter;
+    private Handler timeHanlder;
+    private Bundle mBundle;
+
+    @Override
+    protected int contentViewID() {
+        return R.layout.activity_search_device_ox_standard;
+    }
+
+    @Override
+    protected void initialize() {
+        setTopTitle(getResources().getString(R.string.pulse_oximeter), true);
+        setLeftBtnFinish();
+
+        ImageView imageView = findViewById(R.id.activity_search_device_ox_standard_imageView);
+//        Intent intent = getIntent();
+//        DeviceIconvo deviceIconvo = (DeviceIconvo) intent.getSerializableExtra("deviceIconvo");
+//        imageView.setImageResource(deviceIconvo.getIconImagePositive());
+//        this.deviceName = deviceIconvo.getIconName();
+        mBundle = getIntent().getExtras();
+        deviceName = mBundle.getString(DevicesType.Device);
+        switch (deviceName) {
+            case "OX200":
+                imageView.setImageResource(R.mipmap.add_device_pulse_oximeter_ox200_positive);
+                break;
+            case "MD300C208":
+                imageView.setImageResource(R.mipmap.add_device_pulse_oximeter_md300c208_positive);
+                break;
+            case "MD300C228":
+                imageView.setImageResource(R.mipmap.add_device_pulse_oximeter_md300c228_positive);
+                break;
+            case "MD300CI218":
+                imageView.setImageResource(R.mipmap.add_device_pulse_oximeter_md300ci218_positive);
+                break;
+            case "MD300C208S":
+                imageView.setImageResource(R.mipmap.add_device_pulse_oximeter_md300c208s_positive);
+                break;
+            case "MD300C228S":
+                imageView.setImageResource(R.mipmap.add_device_pulse_oximeter_md300c228s_positive);
+                break;
+            case "MD300I-G":
+                imageView.setImageResource(R.mipmap.add_device_pulse_oximeter_md300i_g_positive);
+                break;
+            default:
+        }
+        c208Invoker = new C208Invoker(this);
+        autoRequestPermission();
+        mSaveDeviceInfoPresenter = new SaveDeviceInfoPresenter(this, (ISaveDeviceInfoView) this);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        timeHanlder = new Handler();
+        timeHanlder.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                toFailureActivity();
+            }
+        }, 11000);
+    }
+
+    private void toFailureActivity() {
+        c208Invoker.stopScan();
+        Bundle bundle = new Bundle();
+        bundle.putString(DevicesType.Device, deviceName);
+        startActivityFinish(FailureActivity.class, bundle);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode) {
+            case REQUEST_LOCATION_PERMISSION_CODE:
+                //申请权限成功连接设备
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    bindDevice();
+                }
+                break;
+            default:
+        }
+    }
+
+    /**
+     * 动态申请位置信息权限
+     */
+    private void autoRequestPermission() {
+
+        //sdk版本低于23无需申请位置信息权限
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            return;
+        }
+        //判断是否有位置信息权限，有-不处理，无-申请
+        if (ContextCompat.checkSelfPermission(this
+                , Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_LOCATION_PERMISSION_CODE);
+            return;
+        }
+        bindDevice();
+    }
+
+    private void bindDevice() {
+        c208Invoker.bindDevice(new C208BindDeviceCallback() {
+            @Override
+            public void onFoundDevice(DeviceType deviceType, C208 c208) {
+                Log.d(TAG, "onFoundDevice--: 发现设备" + c208.toString());
+                address = c208.getMacAddress();
+                c208Device = c208;
+                saveC208Device();
+//                connectDevice();
+                Bundle bundle = new Bundle();
+                bundle.putString(DevicesType.Device, deviceName);
+                startActivityFinish(SuccessActivity.class, bundle);
+            }
+
+            @Override
+            public void onScanTimeout(DeviceType deviceType) {
+                Log.d(TAG, "onScanTimeout: 绑定超时");
+                //跳转失败重试界面
+                toFailureActivity();
+            }
+
+            @Override
+            public void onError(DeviceType deviceType, int errorMsg) {
+                Log.d(TAG, "onError: error:" + errorMsg);
+                //跳转失败重试界面
+                toFailureActivity();
+            }
+        });
+    }
+
+    private void connectDevice() {
+        c208Invoker.connectDevice(new C208ConnectCallback() {
+            @Override
+            public void onSuccess() {
+                Log.d(TAG, "onSuccess: ");
+//                saveC208Device();
+                //跳转到成功的界面
+
+            }
+
+            @Override
+            public void onMeasureResult(DeviceType deviceType, int ox, int pi, int pulseRate) {
+                LogUtils.d(TAG, "血氧：" + ox + " PI：" + pi + " 脉率：" + pulseRate);
+            }
+
+            @Override
+            public void onError(DeviceType deviceType, int errorMsg) {
+                Log.e(TAG, "MainActivity.onError." + errorMsg);
+                switch (errorMsg) {
+
+                    case ErrorCode
+                            .ERROR_BLUETOOTH_NOT_OPEN://未打开蓝牙
+                        openBluetoothBle();
+                        Log.d(TAG, "onError: 请先开启蓝牙！");
+                    case ErrorCode.ERROR_CONNECT_TIMEOUT: //连接超时
+                        //跳转失败重试页面
+                        toFailureActivity();
+                    case ErrorCode.ERROR_BLE_DISCONNECT://下位机主动断开连接
+                    case ErrorCode.ERROR_GATT_EXCEPTION://gatt异常
+                        toFailureActivity();
+                        break;
+                    default:
+                }
+
+            }
+        }, address);
+    }
+
+    private void openBluetoothBle() {
+        BluetoothManager bluetoothManager = (BluetoothManager) this.getSystemService(Context.BLUETOOTH_SERVICE);
+        BluetoothAdapter bluetoothAdapter = bluetoothManager.getAdapter();
+        if (bluetoothAdapter != null && !bluetoothAdapter.isEnabled()) {
+            LogUtils.d(TAG, "检测到蓝牙未打开：重新开启蓝牙！");
+            bluetoothAdapter.enable();//不弹对话框直接开启蓝牙
+        }
+    }
+
+    private void saveC208Device() {
+        deviceType = DevicesType.PulseOximeter;
+        DeviceInfo deviceInfo = new DeviceInfo();
+        deviceInfo.setUserId(App.getAppData().userProfileInfo.getUserId() + "");
+        deviceInfo.setCreateTime(FormatUtils.getDateTimeString(new Date(), FormatUtils.template_DbDateTime));
+        deviceInfo.setLastUpdateTime(FormatUtils.getDateTimeString(new Date(), FormatUtils.template_DbDateTime));
+        deviceInfo.setDeviceType(deviceType);
+        deviceInfo.setTypeName("Pulse Oximeter " + deviceName);
+        deviceInfo.setBluetoothId(c208Device.getMacAddress());
+        deviceInfo.setDeviceName(deviceName);
+        mSaveDeviceInfoPresenter.callModelSaveDeviceInfo(deviceInfo);
+        LogUtils.d(TAG, "deviceInfo:" + deviceInfo.toString());
+
+    }
+
+    @Override
+    public void saveDeviceInfoFinish() {
+        DeviceDisplay deviceDisplay = new DeviceDisplay();
+        deviceDisplay.setUserId(App.getAppData().userProfileInfo.getUserId());
+        deviceDisplay.setCreateTime(FormatUtils.getDateTimeString(new Date(), FormatUtils.template_DbDateTime));
+        deviceDisplay.setLastUpdateTime(FormatUtils.getDateTimeString(new Date(), FormatUtils.template_DbDateTime));
+        deviceDisplay.setID(UuidUtils.getUuid());
+        deviceDisplay.setPulseOximeter(1);
+        mSaveDeviceInfoPresenter.callModelSaveBindDeviceInfo(deviceDisplay, deviceType);
+        App.getAppData().deviceDisplay = deviceDisplay;
+    }
+
+    @Override
+    public void saveOrUpdateDeviceDisplayFinish() {
+        finish();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        c208Invoker.stopScan();
+        if (timeHanlder != null) {
+            timeHanlder.removeCallbacksAndMessages(null);
+        }
+    }
+}

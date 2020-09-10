@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:stv="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".healthcheck.activity.wristpulse.DeviceSettingWpoActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:layout_margin="12dp"
+        android:background="@color/white">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="@dimen/dp_32">
+
+            <com.allen.library.SuperTextView
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/dp_44"
+                android:layout_marginLeft="@dimen/dp_12"
+                stv:sLeftTextColor="@color/color_000000"
+                stv:sLeftTextSize="@dimen/sp_15"
+                stv:sLeftTextString="@string/unit"
+                stv:sRightIconRes="@drawable/ic_right_next"
+                stv:sLeftIconRes="@mipmap/temp_unit"
+                stv:sRightTextSize="@dimen/sp_15"
+                android:id="@+id/tv_unit"
+                stv:sDividerLineType="none"
+                stv:sRightTextColor="@color/text2"
+                android:layout_marginRight="@dimen/dp_14" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <com.allen.library.SuperTextView
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/dp_44"
+                android:layout_marginLeft="12dp"
+                stv:sLeftTextColor="@color/color_000000"
+                stv:sLeftTextSize="@dimen/sp_15"
+                stv:sLeftTextString="@string/how_to_use"
+                stv:sRightIconRes="@drawable/ic_right_next"
+                stv:sLeftIconRes="@mipmap/howtouse"
+                android:id="@+id/how_to_use"
+                stv:sDividerLineType="none"
+                android:layout_marginRight="@dimen/dp_14" />
+
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <com.allen.library.SuperTextView
+                stv:sLeftTextColor="@color/color_000000"
+                stv:sLeftTextSize="@dimen/sp_15"
+                stv:sLeftTextString="@string/faq"
+                stv:sRightIconRes="@drawable/ic_right_next"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/dp_44"
+                android:layout_marginLeft="12dp"
+                stv:sLeftIconRes="@mipmap/faq"
+                android:id="@+id/how_to_faq"
+                stv:sDividerLineType="none"
+                android:layout_marginRight="@dimen/dp_14" />
+
+
+            <Button
+                android:id="@+id/delete_device_wpo"
+                style="@style/style_button"
+                android:layout_marginLeft="40dp"
+                android:layout_marginTop="290dp"
+                android:layout_marginRight="40dp"
+                android:background="@drawable/botton_temp_delete"
+                android:text="@string/delete_device" />
+        </LinearLayout>
+    </LinearLayout>
+</android.support.constraint.ConstraintLayout>

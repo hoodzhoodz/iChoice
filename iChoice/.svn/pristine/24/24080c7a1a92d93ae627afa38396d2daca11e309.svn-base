@@ -1,0 +1,103 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head lang="en">
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+
+    <title>FAQ</title>
+
+    <style>
+        
+         html,body,*{ margin: 0;padding: 0;}
+        body {
+            font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+            font-size: 14px;
+            line-height: 1.42857143;
+            color: #333;
+            background-color: #fff;
+        }
+        .askRow {  color: #fe856e;  }
+
+        .answerRow{  line-height: 1.5;   }
+
+        .m-b20 { margin-bottom: 20px; }
+        .container{ max-width: 980px;margin: 0 auto;padding: 10px 20px;/*background: url('04.png') no-repeat center 0;*/ } 
+        .title{ font-weight: 700;font-size: 22px;letter-spacing: 4px;line-height: 1.5;text-align: center;}
+        .h3-step{ font-size: 14px;font-weight: 600;margin-bottom: 14px;}
+        .div-img-box{ text-align: center;padding: 20px 0;margin: 0 -20px;}
+        .div-img-box img{ max-width: 100%;  }
+        .p-content{ font-size: 12px;margin-bottom: 10px;line-height: 1.5;}
+        .p-content img{ height: 1em;margin-left: 3px;margin-right: 3px;}
+
+        .title-en{ letter-spacing:normal;}
+        .title-en-sub{ font-size: 12px;font-weight: 400;}
+
+        .table{ width: 100%;max-width: 100%;margin-bottom: 20px; border-spacing: 0;border-collapse: collapse;}
+        .table>tbody>tr>td{ text-align: center;border: 1px solid #000;font-size: 12px;vertical-align: middle;border-top: 1px solid #000;padding:8px 0;}
+
+        .temprature-row{ padding: 10px 20%;text-align: center;display: none; }
+         
+        .temprature-box{width: 392px;margin: 0 auto;}
+        .temprature-item{ float: left; width: 77px;margin-right: 85px; }
+        .number-block-black{ width: 35px;height: 35px;line-height: 35px;font-size: 14px;border-radius: 2px;color: #fff;margin-bottom: 10px;background-color: #000;}
+        .manths{  }
+
+        ul,li{ list-style: none;margin: 0;padding: 0;text-align: center;}
+        ul.ul-desc li{}
+        ul.ul-desc li h3{ font-size: 13px;font-weight: 500; margin: 15px 0;}
+        ul.ul-desc li p{ font-size: 12px;font-weight: normal;}
+
+    </style>
+</head>
+
+<body>
+
+
+<div class="container m-b20">
+    <h1 class="title">快操手册</h1>
+    <div class="div-img-box"><img src="2.jpg"/></div>
+    <h3 class="h3-step">步骤一：</h3>
+    <p class="p-content">短按开关按钮<img src="5.jpg"/>开机。</p>
+
+    <h3 class="h3-step">步骤二：</h3>
+    <p class="p-content">选择年龄范围。</p>
+    <div class="temprature-row">
+        <div class="temprature-box">
+            <div class="temprature-item">
+                <div class="number-block-black">36+</div>
+                <div class="manths">Months</div>
+            </div>
+        </div>
+        <div class="temprature-box">
+            <div class="temprature-item">
+                <div class="number-block-black">3-36</div>
+                <div class="manths">Months</div>
+            </div>
+        </div>
+        <div class="temprature-box">
+            <div class="temprature-item">
+                <div class="number-block-black">0-3</div>
+                <div class="manths">Months</div>
+            </div>
+        </div>
+    </div>
+    <div class="div-img-box"><img src="4.jpg"/></div>
+
+    <h3 class="h3-step">步骤三：</h3>
+    <p class="p-content">将额温枪置于离额头1cm的位置并按测量按钮到待测量状态。</p>
+    <div class="div-img-box"><img src="3.jpg"/></div>
+
+    <h3 class="h3-step">步骤四：</h3>
+    <p class="p-content">短按测量按钮<img src="6.jpg"/>，听到蜂鸣声起，即测量完成，整个测量完成预计1秒。</p>
+
+    <h3 class="h3-step">步骤五：</h3>
+    <p class="p-content">查看读数。</p>
+
+</div>
+
+
+</body>
+</html>

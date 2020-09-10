@@ -1,0 +1,3 @@
+1)血氧，血压，血糖，尿常规，体温，数据库表data类型字段更改为string
+2)2017-05-08 夏翔 Medical_history、family_history表添加uuid为主键 id字段为服务器上传所需。
+3)2017-05-10 夏翔 Resident_Electronic_Archive表添加uuid为主键

@@ -1,0 +1,284 @@
+package com.choicemmed.ichoice.healthcheck.activity.ecg;
+
+import android.os.Build;
+import android.view.View;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+
+import com.choicemmed.common.LogUtils;
+import com.choicemmed.common.StringUtils;
+import com.choicemmed.ichoice.R;
+import com.choicemmed.ichoice.framework.application.IchoiceApplication;
+import com.choicemmed.ichoice.framework.base.BaseActivty;
+import com.choicemmed.ichoice.framework.utils.Utils;
+import com.choicemmed.ichoice.healthcheck.fragment.ecg.analyzer.EcgAnalyzerResult;
+import com.choicemmed.ichoice.healthcheck.fragment.ecg.bean.AnResult;
+import com.choicemmed.ichoice.healthcheck.view.EcgView;
+
+import java.util.Locale;
+
+import butterknife.BindView;
+import butterknife.OnClick;
+import pro.choicemmed.datalib.UserProfileInfo;
+
+import static com.choicemmed.ichoice.healthcheck.fragment.ecg.EcgMeasureFragment.getAge;
+import static com.choicemmed.ichoice.healthcheck.fragment.ecg.EcgMeasureFragment.uncompressA12bEcgData;
+import static com.choicemmed.ichoice.healthcheck.fragment.ecg.EcgMeasureFragment.uncompressP10bEcgData;
+
+/**
+ * Created by 117590 on 2020/8/25
+ */
+public class EcgAnalysisActivity extends BaseActivty {
+    @BindView(R.id.tv_name)
+    TextView tv_name;
+    @BindView(R.id.tv_sex)
+    TextView tv_sex;
+    @BindView(R.id.tv_time)
+    TextView tv_time;
+
+
+    @BindView(R.id.tv_height)
+    TextView tv_height;
+    @BindView(R.id.tv_weight)
+    TextView tv_weight;
+    @BindView(R.id.tv_duration)
+    TextView tv_duration;
+
+    @BindView(R.id.ll_fibrillation)
+    LinearLayout ll_fibrillation;
+    @BindView(R.id.tv_atrial_fibrillation)
+    TextView tv_atrial_fibrillation;
+    @BindView(R.id.ll_premature)
+    LinearLayout ll_premature;
+    @BindView(R.id.tv_premature1)
+    TextView tv_premature1;
+    @BindView(R.id.tv_premature)
+    TextView tv_premature;
+    @BindView(R.id.tv_bradycardia)
+    TextView tv_bradycardia;
+    @BindView(R.id.ll_bradycardia)
+    LinearLayout ll_bradycardia;
+    @BindView(R.id.tv_tachycardia)
+    TextView tv_tachycardia;
+    @BindView(R.id.ll_tach)
+    LinearLayout ll_tach;
+    @BindView(R.id.txv_other)
+    TextView txv_other;
+
+    @BindView(R.id.tv_avg_hr)
+    TextView tv_avg_hr;
+    @BindView(R.id.tv_slow_hr)
+    TextView tv_slow_hr;
+    @BindView(R.id.tv_fast_hr)
+    TextView tv_fast_hr;
+    @BindView(R.id.tv_avg_rr_interval)
+    TextView tv_avg_rr_interval;
+    @BindView(R.id.tv_max_rr_interval)
+    TextView tv_max_rr_interval;
+    @BindView(R.id.tv_aix_rr_interval)
+    TextView tv_aix_rr_interval;
+    @BindView(R.id.tv_sdnn)
+    TextView tv_sdnn;
+
+
+    @BindView(R.id.ll_afib)
+    LinearLayout ll_afib;
+    @BindView(R.id.tv_afib)
+    TextView tv_afib;
+    @BindView(R.id.bradycardia)
+    LinearLayout bradycardia;
+    @BindView(R.id.tv_bradycardia1)
+    TextView tv_bradycardia1;
+    @BindView(R.id.premature_beats)
+    LinearLayout premature_beats;
+    @BindView(R.id.tv_beats)
+    TextView tv_beats;
+    @BindView(R.id.ll_tachycardia)
+    LinearLayout ll_tachycardia;
+    @BindView(R.id.tv_tachycardia1)
+    TextView tv_tachycardia1;
+
+    @BindView(R.id.tv_avg_hr1)
+    TextView tv_avg_hr1;
+
+
+
+
+    @BindView(R.id.home_vEcgBarView)
+    EcgView home_vEcgBarView;
+
+    private int[] ecgData;
+    private int during;
+    private boolean isFibrillation = false;
+    private boolean isPremature = false;
+    private boolean isBradycardia = false;
+    private boolean isTachycardia = false;
+
+    private AnResult result;
+    private EcgAnalyzerResult ecgAnalyzerResult;
+    private UserProfileInfo userProfileInfo;
+    @Override
+    protected int contentViewID() {
+        return R.layout.activity_ecg_analysis;
+    }
+
+    @Override
+    protected void initialize() {
+        setTopTitle(getString(R.string.analysis_results), true);
+        setLeftBtnFinish();
+        setRightBtn(true, R.mipmap.ecg_share, new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+            }
+        });
+        initData();
+        if ("A12".equals(IchoiceApplication.type)) {
+            ecgData = uncompressA12bEcgData(IchoiceApplication.ecgData.getEcgData());
+            during = 30;
+        } else if ("P10".equals(IchoiceApplication.type)) {
+            if (ecgData.length == 22512) {
+                during = 30;
+            } else {
+                during = (ecgData.length - 12) * 30 / 22500;
+            }
+            ecgData = uncompressP10bEcgData(IchoiceApplication.ecgData.getEcgData());
+
+
+        }
+        home_vEcgBarView.redrawEcg(ecgData);
+    }
+
+    private void initData() {
+        String language = Locale.getDefault().getLanguage();
+        userProfileInfo = IchoiceApplication.getInstance().getDaoSession().getUserProfileInfoDao().queryBuilder().unique();
+        IchoiceApplication.getAppData().userProfileInfo = userProfileInfo;
+        if (userProfileInfo != null) {
+            if (!StringUtils.isEmpty(userProfileInfo.getFirstName()) && !StringUtils.isEmpty(userProfileInfo.getFamilyName())) {
+                if (language.contains("zh")) {
+                    tv_name.setText(userProfileInfo.getFamilyName() + "" + userProfileInfo.getFirstName());
+                } else {
+                    tv_name.setText(userProfileInfo.getFirstName() + "·" + userProfileInfo.getFamilyName());
+                }
+
+            }
+            int age = getAge(IchoiceApplication.getAppData().userProfileInfo.getBirthday());
+            if (userProfileInfo.getGender().equals("2")) {
+                tv_sex.setText(getResources().getString(R.string.male) + "  " + age);
+            } else {
+                tv_sex.setText(getResources().getString(R.string.female) + "  " + age);
+            }
+            tv_time.setText(IchoiceApplication.ecgData.getMeasureTime());
+            tv_height.setText(userProfileInfo.getHeight());
+            tv_weight.setText(userProfileInfo.getWeight());
+            tv_duration.setText(during + "");
+
+
+            result = IchoiceApplication.thisResult;
+            ecgAnalyzerResult = IchoiceApplication.ecgAnalyzerResult;
+            tv_avg_hr.setText(result.getObservation().getHr() + "");
+            tv_max_rr_interval.setText("" + ecgAnalyzerResult.getRr_max());
+            tv_aix_rr_interval.setText("" + ecgAnalyzerResult.getRr_min());
+            tv_avg_rr_interval.setText("" + ecgAnalyzerResult.getRr_average());
+            tv_sdnn.setText("" + ecgAnalyzerResult.getSdnn());
+            tv_slow_hr.setText((60000 / ecgAnalyzerResult.getRr_max()) + "");
+            tv_fast_hr.setText(60000 / ecgAnalyzerResult.getRr_min() + "");
+            tv_avg_hr1.setText(result.getObservation().getHr() + "");
+
+
+            if (!"absent".equals(result.getConclusion().getAF())) {
+                tv_atrial_fibrillation.setText(getString(R.string.suspected));
+                ll_fibrillation.setVisibility(View.VISIBLE);
+                isFibrillation = true;
+                tv_afib.setText(R.string.suspected);
+                tv_afib.setTextColor(getResources().getColor(R.color.red_pressed));
+
+            } else {
+                isFibrillation = false;
+                ll_fibrillation.setVisibility(View.GONE);
+                tv_afib.setText(R.string.no1);
+
+            }
+            if ("absent".equals(result.getConclusion().getWith_Ectopic_Beats())) {
+                ll_premature.setVisibility(View.GONE);
+                isPremature = false;
+                tv_beats.setText(R.string.no1);
+            } else {
+                tv_beats.setTextColor(getResources().getColor(R.color.red_pressed));
+                tv_beats.setText(R.string.suspected);
+                if (result.getObservation().getNumber_of_Ectopic_Beats() > 3) {
+                    tv_premature.setVisibility(View.VISIBLE);
+                    tv_premature.setText(getString(R.string.Frequent));
+                    ll_premature.setVisibility(View.VISIBLE);
+                    tv_premature1.setVisibility(View.GONE);
+                    isPremature = true;
+
+                } else {
+                    Locale locale;
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        locale = getResources().getConfiguration().getLocales().get(0);
+                    } else {
+                        locale = getResources().getConfiguration().locale;
+                    }
+
+                    if (!locale.getLanguage().equals("zh")) {
+                        tv_premature1.setVisibility(View.VISIBLE);
+                        tv_premature1.setText(getString(R.string.suspected));
+
+                        tv_premature.setVisibility(View.GONE);
+                    } else {
+                        tv_premature.setVisibility(View.VISIBLE);
+                        tv_premature.setText(getString(R.string.suspected));
+
+                        tv_premature1.setVisibility(View.GONE);
+                    }
+                    ll_premature.setVisibility(View.VISIBLE);
+                    isPremature = true;
+//                ll_premature.setVisibility(View.GONE);
+//                isPremature = false;
+                }
+            }
+            if (!"absent".equals(result.getConclusion().getBradycardia())) {
+                tv_bradycardia.setText(getString(R.string.suspected));
+                ll_bradycardia.setVisibility(View.VISIBLE);
+                isBradycardia = true;
+                tv_bradycardia1.setTextColor(getResources().getColor(R.color.red_pressed));
+                tv_bradycardia1.setText(R.string.suspected);
+            } else {
+                ll_bradycardia.setVisibility(View.GONE);
+                isBradycardia = false;
+                tv_bradycardia1.setText(R.string.no1);
+            }
+            if (!"absent".equals(result.getConclusion().getTachycardia())) {
+                tv_tachycardia.setText(getString(R.string.suspected));
+                ll_tach.setVisibility(View.VISIBLE);
+                isTachycardia = true;
+                tv_tachycardia1.setTextColor(getResources().getColor(R.color.red_pressed));
+                tv_tachycardia1.setText(R.string.suspected);
+            } else {
+                ll_tach.setVisibility(View.GONE);
+                isTachycardia = false;
+                tv_tachycardia1.setText(R.string.no1);
+            }
+            if (isFibrillation || isPremature || isBradycardia || isTachycardia) {
+                txv_other.setText(getString(R.string.no_other_e));
+            } else {
+                txv_other.setText(getString(R.string.no_e));
+            }
+            if (!"absent".equals(result.getConclusion().getOther())) {
+                txv_other.setText(getString(R.string.other_e));
+            }
+        }
+
+
+    }
+
+    @OnClick({R.id.ll_full_ecg})
+    public void onClick(View view) {
+        switch (view.getId()) {
+            case R.id.ll_full_ecg:
+                startActivity(EcgFullChartActivity.class);
+                break;
+        }
+    }
+}

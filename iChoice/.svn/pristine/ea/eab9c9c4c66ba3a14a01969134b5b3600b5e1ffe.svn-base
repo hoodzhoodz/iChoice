@@ -1,0 +1,646 @@
+package com.choicemmed.ichoice.healthreport.fragment;
+
+import android.animation.ObjectAnimator;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.os.Build;
+import android.os.Bundle;
+import android.support.annotation.RequiresApi;
+import android.support.v4.app.Fragment;
+import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.widget.CardView;
+import android.view.View;
+import android.widget.ImageView;
+import android.widget.TextView;
+
+import com.choicemmed.common.DateUtils;
+import com.choicemmed.common.FormatUtils;
+import com.choicemmed.common.SharePreferenceUtil;
+import com.choicemmed.common.StringUtils;
+import com.choicemmed.ichoice.R;
+import com.choicemmed.ichoice.framework.application.App;
+import com.choicemmed.ichoice.framework.base.BaseFragment;
+import com.choicemmed.ichoice.framework.utils.ORECalculate;
+import com.choicemmed.ichoice.healthcheck.activity.CalenderSelectActivity;
+import com.choicemmed.ichoice.healthcheck.db.Cbp1k1Operation;
+import com.choicemmed.ichoice.healthcheck.db.DeviceDisplayOperation;
+import com.choicemmed.ichoice.healthcheck.db.DeviceOperation;
+import com.choicemmed.ichoice.healthcheck.db.OxSpotOperation;
+import com.choicemmed.ichoice.healthcheck.db.W314B4Operation;
+import com.choicemmed.ichoice.healthcheck.db.W628Operation;
+import com.choicemmed.ichoice.framework.utils.DevicesType;
+import com.choicemmed.ichoice.healthcheck.view.CircleProgress;
+import com.choicemmed.ichoice.healthreport.custom.ArcTwoCircle;
+import com.choicemmed.ichoice.healthreport.custom.OxCircle;
+import com.prolificinteractive.materialcalendarview.CalendarDay;
+
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+
+import butterknife.BindView;
+import butterknife.OnClick;
+import pro.choicemmed.datalib.CFT308Data;
+import pro.choicemmed.datalib.CFT308DataDao;
+import pro.choicemmed.datalib.Cbp1k1Data;
+import pro.choicemmed.datalib.DeviceDisplay;
+import pro.choicemmed.datalib.OxSpotData;
+import pro.choicemmed.datalib.W314B4Data;
+import pro.choicemmed.datalib.W628Data;
+
+import static com.choicemmed.ichoice.framework.base.BaseDb.getDaoSession;
+
+
+public class ReportMeasureFragment extends BaseFragment implements SwipeRefreshLayout.OnRefreshListener{
+
+    @BindView(R.id.tv_year)
+    TextView tv_year;
+    @BindView(R.id.tv_month)
+    TextView tv_month;
+    @BindView(R.id.tv_day)
+    TextView tv_day;
+    @BindView(R.id.calendar_left)
+    ImageView calendar_left;
+    @BindView(R.id.calendar_right)
+    ImageView calendar_right;
+
+    @BindView(R.id.swipe_report_measure)
+    SwipeRefreshLayout swipeRefreshLayout;
+
+    @BindView(R.id.sys_arcTwoCircle)
+    ArcTwoCircle sys_arcTwoCircle;
+    @BindView(R.id.dia_arcTwoCircle)
+    ArcTwoCircle dia_arcTwoCircle;
+    @BindView(R.id.pr_arcTwoCircle)
+    ArcTwoCircle pr_arcTwoCircle;
+
+    @BindView(R.id.sys_data)
+    TextView sys_data;
+    @BindView(R.id.dia_data)
+    TextView dia_data;
+    @BindView(R.id.pr_data)
+    TextView pr_data;
+
+    @BindView(R.id.sys_scope)
+    TextView sys_scope;
+    @BindView(R.id.dia_scope)
+    TextView dia_scope;
+    @BindView(R.id.re_sys_unit)
+    TextView sys_unit;
+    @BindView(R.id.re_dia_unit)
+    TextView dia_unit;
+    @BindView(R.id.bp_measure)
+    CardView bp_measure;
+    @BindView(R.id.wpo_measure)
+    CardView wpo_measure;
+    @BindView(R.id.temp_measure)
+    CardView temp_measure;
+    @BindView(R.id.temp_left)
+    TextView temp_left;
+    @BindView(R.id.temp_right)
+    TextView temp_right;
+    @BindView(R.id.tv_unit)
+    TextView tv_unit;
+    @BindView(R.id.cp)
+    CircleProgress circleProgress;
+    //血氧
+    @BindView(R.id.ox_measure)
+    CardView ox_measure;
+    @BindView(R.id.spo2_oxCircle)
+    OxCircle spo2_oxCircle;
+    @BindView(R.id.pr_oxCircle)
+    OxCircle pr_oxCircle;
+    @BindView(R.id.pi_oxCircle)
+    OxCircle pi_oxCircle;
+    @BindView(R.id.rr_oxCircle)
+    OxCircle rr_oxCircle;
+    @BindView(R.id.ox_spo2_data)
+    TextView ox_spo2_data;
+    @BindView(R.id.ox_pr_data)
+    TextView ox_pr_data;
+    @BindView(R.id.ox_pi_data)
+    TextView ox_pi_data;
+    @BindView(R.id.ox_rr_data)
+    TextView ox_rr_data;
+    @BindView(R.id.ox_spo2_range)
+    TextView ox_spo2_range;
+    @BindView(R.id.ox_pr_range)
+    TextView ox_pr_range;
+    @BindView(R.id.ox_pi_range)
+    TextView ox_pi_range;
+    @BindView(R.id.ox_rr_range)
+    TextView ox_rr_range;
+    @BindView(R.id.spo2_globe)
+    ImageView spo2_globe;
+    @BindView(R.id.pr_globe)
+    ImageView pr_globe;
+    @BindView(R.id.pi_globe)
+    ImageView pi_globe;
+    @BindView(R.id.rr_globe)
+    ImageView rr_globe;
+
+
+    int sys_bigStart = 60;
+    int sys_bigEnd = 280;
+    int sys_smallStart = 90;
+    int sys_smallEnd = 140;
+
+    int dia_bigStart = 30;
+    int dia_bigEnd = 120;
+    int dia_smallStart = 60;
+    int dia_smallEnd = 90;
+
+    int pr_bigStart = 40;
+    int pr_bigEnd = 175;
+    int pr_smallStart = 60;
+    int pr_smallEnd = 100;
+
+    @BindView(R.id.sys_circle)
+    ImageView sys_circle;
+    @BindView(R.id.dia_circle)
+    ImageView dia_circle;
+    @BindView(R.id.pr_circle)
+    ImageView pr_circle;
+
+    @BindView(R.id.measure_hours)
+    TextView measureHours;
+    @BindView(R.id.measure_times)
+    TextView measureTimes;
+    @BindView(R.id.measure_state)
+    TextView measureState;
+    @BindView(R.id.measure_img_state)
+    ImageView imgState;
+    private int minute;
+    private int hours;
+    private int seconds;
+    private int oreTimes;
+    private int tempUnit;
+    private float draw_Ahi = 0;
+    private int minSpo;
+    ObjectAnimator sys_objectAnimator,dia_objectAnimator,pr_objectAnimator;
+    ObjectAnimator ox_spo2_objectAnimator,ox_pr_objectAnimator,ox_pi_objectAnimator,ox_rr_objectAnimator;
+    int sys = 0,dia = 0, pr =0;
+    private DeviceOperation deviceOperation = new DeviceOperation(getContext());
+    private Calendar calendar = Calendar.getInstance();
+    private static String beginDate = FormatUtils.getDateTimeString(new Date(), FormatUtils.template_DbDateTime);
+    BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            try {
+                int year = intent.getIntExtra("year", CalendarDay.today().getYear());
+                int month = intent.getIntExtra("month",CalendarDay.today().getMonth());
+                int day = intent.getIntExtra("day",CalendarDay.today().getDay());
+                calendar.set(year,month,day);
+                setTextDate();
+                setViewData(calendar);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    };
+
+    boolean isunit = App.getAppData().userProfileInfo.getIsUnit();
+    BroadcastReceiver broadcastReceiver1 = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            try {
+                isunit = intent.getBooleanExtra("isunit",false);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        }
+    };
+
+
+    public static Fragment getInstance() {
+        Fragment fragment = new ReportMeasureFragment();
+        return fragment;
+    }
+
+    @Override
+    protected int contentViewID() {
+        return R.layout.fragment_report_measure;
+    }
+
+
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    @Override
+    protected void initialize() {
+        initReceiver();
+        tempUnit = (int) SharePreferenceUtil.get(getActivity(), "temp_unit", 1);
+        swipeRefreshLayout.setOnRefreshListener(this);
+        swipeRefreshLayout.setColorSchemeColors(getResources().getColor(R.color.color_414141));
+        initBeginTime();
+        setTextDate();
+        initCard();
+    }
+
+    private void initBeginTime() {
+        String strDate = App.getAppData().userProfileInfo.getSignupDateTime();
+        strDate = strDate.substring(6,strDate.length()-2);
+        beginDate = DateUtils.getDateToString(Long.parseLong(strDate), FormatUtils.template_DbDateTime);
+    }
+
+    private void initReceiver() {
+        IntentFilter intentFilter = new IntentFilter("CalenderSelect");
+        getActivity().registerReceiver(broadcastReceiver,intentFilter);
+        IntentFilter intentFilter1 = new IntentFilter("UnitSelect");
+        getActivity().registerReceiver(broadcastReceiver1,intentFilter1);
+    }
+
+    private void initCard() {
+        DeviceDisplayOperation deviceDisplayOperation = new DeviceDisplayOperation(getContext());
+        DeviceDisplay deviceDisplay = deviceDisplayOperation.queryByUserId(App.getAppData().userProfileInfo.getUserId());
+        if (deviceDisplay == null){
+            bp_measure.setVisibility(View.GONE);
+            wpo_measure.setVisibility(View.GONE);
+            temp_measure.setVisibility(View.GONE);
+            ox_measure.setVisibility(View.GONE);
+            return;
+        }
+        if (deviceDisplay.getBloodPressure() == 0){
+            bp_measure.setVisibility(View.GONE);
+        }else {
+            bp_measure.setVisibility(View.VISIBLE);
+            setArc();
+        }
+        if (deviceDisplay.getWristPluseOximeter() == 0){
+            wpo_measure.setVisibility(View.GONE);
+        }else {
+            wpo_measure.setVisibility(View.VISIBLE);
+        }
+        if (deviceDisplay.getThermometer() == 0) {
+            temp_measure.setVisibility(View.GONE);
+        } else {
+            temp_measure.setVisibility(View.VISIBLE);
+
+        }
+        if (deviceDisplay.getPulseOximeter() == 0){
+            ox_measure.setVisibility(View.GONE);
+        }else {
+            ox_measure.setVisibility(View.VISIBLE);
+            setOxCircleRange();
+        }
+        setViewData(calendar);
+    }
+
+    private void setArc() {
+        sys_arcTwoCircle.setBig(sys_bigStart,sys_bigEnd);
+        sys_arcTwoCircle.setSmall(sys_smallStart,sys_smallEnd);
+        dia_arcTwoCircle.setBig(dia_bigStart,dia_bigEnd);
+        dia_arcTwoCircle.setSmall(dia_smallStart,dia_smallEnd);
+        pr_arcTwoCircle.setBig(pr_bigStart,pr_bigEnd);
+        pr_arcTwoCircle.setSmall(pr_smallStart,pr_smallEnd);
+    }
+
+    private void setOxCircleRange(){
+        spo2_oxCircle.setBig(70,100);
+        spo2_oxCircle.setSmall(94,100);
+        pr_oxCircle.setBig(30,280);
+        pr_oxCircle.setSmall(60,100);
+        pi_oxCircle.setBig(0,20);
+        pi_oxCircle.setSmall(1,20);
+        rr_oxCircle.setBig(0,70);
+        rr_oxCircle.setSmall(12,20);
+    }
+
+    private void setViewData(Calendar c) {
+        String dateTimeString = FormatUtils.getDateTimeString(c.getTime(), FormatUtils.template_Date);
+        setCbp1k1Data(dateTimeString);
+        setTempData(dateTimeString);
+        setOxData(dateTimeString);
+        String typeName = deviceOperation.queryByDeviceName(App.getAppData().userProfileInfo.getUserId(), DevicesType.WristPluseOximeter);
+        if(typeName == null){
+            return;
+        }
+        typeName = typeName.substring(typeName.length()-4, typeName.length());
+        switch (typeName){
+            case "14B4":
+                setW314Data(dateTimeString);
+                break;
+            case "W628":
+                setW628Data(dateTimeString);
+                break;
+        }
+
+    }
+
+    private void setTempData(String dateTimeString) {
+        DeviceDisplayOperation deviceDisplayOperation = new DeviceDisplayOperation(getContext());
+        DeviceDisplay deviceDisplay = deviceDisplayOperation.queryByUserId(App.getAppData().userProfileInfo.getUserId());
+        if (deviceDisplay != null && deviceDisplay.getThermometer() != 0) {
+            List<CFT308Data> cft308DataList = getDaoSession(getActivity()).getCFT308DataDao().queryBuilder().where(CFT308DataDao.Properties.UserId.eq(App.getAppData().userProfileInfo.getUserId()), CFT308DataDao.Properties.MeasureTime.like(dateTimeString + "%")).orderDesc(CFT308DataDao.Properties.MeasureTime).list();
+            if (cft308DataList.isEmpty()) {
+                temp_measure.setVisibility(View.GONE);
+            } else {
+                temp_left.setTextSize(92);
+                temp_right.setTextSize(64);
+                temp_measure.setVisibility(View.VISIBLE);
+                CFT308Data cft308Data = cft308DataList.get(0);
+                if (tempUnit == 1) {
+                    temp_left.setText(cft308Data.getTemp().substring(0, cft308Data.getTemp().length() - 2));
+                    temp_right.setText(cft308Data.getTemp().substring(cft308Data.getTemp().length() - 2));
+                    tv_unit.setText(getResources().getString(R.string.temp_unit));
+                } else if (tempUnit == 2) {
+                    String f = String.valueOf((Float.parseFloat(cft308Data.getTemp()) * 9 / 5) + 32);
+                    DecimalFormat df = new DecimalFormat("#.0");
+                    df.setRoundingMode(RoundingMode.DOWN);
+                    f = df.format(Float.parseFloat(f));
+                    if (!StringUtils.isEmpty(f)) {
+                        if (Float.parseFloat(f) >= 100) {
+                            temp_left.setTextSize(80);
+                            temp_right.setTextSize(56);
+
+                        }
+                        temp_left.setText(f.substring(0, f.length() - 2));
+                        temp_right.setText(f.substring(f.length() - 2));
+                    }
+                    tv_unit.setText(getResources().getString(R.string.temp_unit1));
+                }
+                circleProgress.reset();
+                circleProgress.setValue((float) (((Float.parseFloat(cft308Data.getTemp()) - 32) * 100) / 10.9));
+            }
+        }
+    }
+
+    private void setW628Data(String dateTimeString) {
+        W314B4Operation w314B4Operation = new W314B4Operation(getContext());
+        W628Operation w628Operation = new W628Operation(getContext());
+        List<W628Data> w628DataList = w628Operation.queryByUserDate(App.getAppData().userProfileInfo.getUserId(), dateTimeString);
+        if (w628DataList.isEmpty()){
+            wpo_measure.setVisibility(View.GONE);
+        }else {
+            wpo_measure.setVisibility(View.VISIBLE);
+            W628Data w628Data = w628DataList.get(0);
+            Date startDate = FormatUtils.parseDate(w628Data.getStartDate(), FormatUtils.sleep_DbDateTime);
+            Date endDate = FormatUtils.parseDate(w628Data.getEndDate(), FormatUtils.sleep_DbDateTime);
+            if (startDate != null && endDate != null) {
+                hours = (int) ((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60));
+                minute = (int) ((endDate.getTime() - startDate.getTime()) / (1000 * 60) % 60);
+                seconds = (int) ((endDate.getTime() - startDate.getTime()) / (1000) % 60);
+            }
+            measureHours.setText(hours + ":" + minute);
+            oreTimes = ORECalculate.oreCountTimes(w628Data.getSeries());
+            measureTimes.setText(oreTimes + "");
+
+            draw_Ahi = (int) (oreTimes * 60 * 60 * 1000 / (endDate.getTime() - startDate.getTime()));
+            minSpo = ORECalculate.getMinSpo(w628Data.getSeries());
+            oreLevel(draw_Ahi, minSpo);
+        }
+    }
+
+    private void setW314Data(String dateTimeString) {
+        W314B4Operation w314B4Operation = new W314B4Operation(getContext());
+        List<W314B4Data> w314B4DataList = w314B4Operation.queryByUserDate(App.getAppData().userProfileInfo.getUserId(), dateTimeString);
+        if (w314B4DataList.isEmpty()){
+            wpo_measure.setVisibility(View.GONE);
+        }else {
+            wpo_measure.setVisibility(View.VISIBLE);
+            W314B4Data w314B4Data = w314B4DataList.get(0);
+            Date startDate = FormatUtils.parseDate(w314B4Data.getStartDate(), FormatUtils.sleep_DbDateTime);
+            Date endDate = FormatUtils.parseDate(w314B4Data.getEndDate(), FormatUtils.sleep_DbDateTime);
+            if (startDate != null && endDate != null) {
+                hours = (int) ((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60));
+                minute = (int) ((endDate.getTime() - startDate.getTime()) / (1000 * 60) % 60);
+                seconds = (int) ((endDate.getTime() - startDate.getTime()) / (1000) % 60);
+            }
+            measureHours.setText(hours + ":" + minute);
+            oreTimes = ORECalculate.oreCountTimes(w314B4Data.getSeries());
+            measureTimes.setText(oreTimes + "");
+
+            draw_Ahi = (int) (oreTimes * 60 * 60 * 1000 / (endDate.getTime() - startDate.getTime()));
+            minSpo = ORECalculate.getMinSpo(w314B4Data.getSeries());
+            oreLevel(draw_Ahi, minSpo);
+
+        }
+    }
+
+    private void setOxData(String dateTimeString){
+        OxSpotOperation oxSpotOperation = new OxSpotOperation(getContext());
+        List<OxSpotData> oxSpotDataList = oxSpotOperation.queryByDate(dateTimeString,App.getAppData().userProfileInfo.getUserId());
+        if (oxSpotDataList.isEmpty()){
+            ox_measure.setVisibility(View.GONE);
+        }else {
+            ox_measure.setVisibility(View.VISIBLE);
+            OxSpotData oxSpotData = oxSpotDataList.get(0);
+            int spo2 = oxSpotData.getBloodOxygen();
+//            int spo2 = 100;
+            int pr = oxSpotData.getPulseRate();
+            float pi = oxSpotData.getPi();
+//            float pi = 1;
+            int rr = oxSpotData.getRR();
+            setOxData(spo2,pr,pi,rr);
+            float ox_spo2_angle,ox_pr_angle,ox_pi_angle,ox_rr_angle;
+            ox_spo2_angle = getAngle(spo2,70,100);
+            ox_pr_angle = getAngle(pr,30,280);
+            ox_pi_angle = getAngle(pi,0,20);
+            ox_rr_angle = getAngle(rr,0,70);
+
+            setAnimator(ox_spo2_objectAnimator,spo2_globe,ox_spo2_angle);
+            setAnimator(ox_pr_objectAnimator,pr_globe,ox_pr_angle);
+            setAnimator(ox_pi_objectAnimator,pi_globe,ox_pi_angle);
+            setAnimator(ox_rr_objectAnimator,rr_globe,ox_rr_angle);
+
+        }
+    }
+    private void setCbp1k1Data(String dateTimeString) {
+        Cbp1k1Operation cbp1k1Operation = new Cbp1k1Operation(getActivity());
+        List<Cbp1k1Data> cbp1k1DataList = cbp1k1Operation.queryByDate(dateTimeString, App.getAppData().userProfileInfo.getUserId());
+        if (cbp1k1DataList.isEmpty()){
+            bp_measure.setVisibility(View.GONE);
+        }else {
+            bp_measure.setVisibility(View.VISIBLE);
+            Cbp1k1Data cbp1k1Data = cbp1k1DataList.get(0);
+            sys = cbp1k1Data.getSystolic();
+            dia = cbp1k1Data.getDiastolic();
+            pr = cbp1k1Data.getPulseRate();
+            setData(sys, dia, pr);
+            float sys_angle , dia_angle , pr_angle ;
+            sys_angle = getAngle(sys,sys_bigStart,sys_bigEnd);
+            dia_angle = getAngle(dia,dia_bigStart,dia_bigEnd);
+            pr_angle = getAngle(pr,pr_bigStart,pr_bigEnd);
+
+            setAnimator(sys_objectAnimator,sys_circle,sys_angle);
+            setAnimator(dia_objectAnimator,dia_circle,dia_angle);
+            setAnimator(pr_objectAnimator,pr_circle,pr_angle);
+        }
+    }
+
+    private void setOxData(int spo2,int pr,float pi,int rr){
+        ox_spo2_data.setText(spo2+"");
+        ox_pr_data.setText(pr+"");
+        if (pi == 0){
+            pi_globe.setVisibility(View.GONE);
+            ox_pi_data.setText("--");
+        }else {
+            pi_globe.setVisibility(View.VISIBLE);
+            ox_pi_data.setText(pi+"");
+        }
+        if (rr == 0){
+            rr_globe.setVisibility(View.GONE);
+            ox_rr_data.setText("--");
+        }else {
+            rr_globe.setVisibility(View.VISIBLE);
+            ox_rr_data.setText(rr+"");
+        }
+
+
+        ox_spo2_range.setText("94-100");
+        ox_pr_range.setText("60-100");
+        ox_pi_range.setText("1-20");
+        ox_rr_range.setText("12-20");
+    }
+    private void oreLevel(float ahi, int minOl) {
+        if (ahi > 30 || minOl < 80) {
+            //重度
+            measureState.setText(getString(R.string.Severe));
+            imgState.setImageResource(R.mipmap.severe_in);
+        } else if ((ahi > 15 && ahi <= 30) || (minOl >= 80 && minOl < 85)) {
+            //中度
+            measureState.setText(getString(R.string.Moderate));
+            imgState.setImageResource(R.mipmap.moderate_in);
+        } else if ((ahi >= 5 && ahi <= 15) || (minOl >= 85 && minOl <= 90)) {
+            //轻度
+            measureState.setText(getString(R.string.Mild));
+            imgState.setImageResource(R.mipmap.mild_in);
+        }
+    }
+
+    private void setAnimator(ObjectAnimator objectAnimator,ImageView imageView,float angle) {
+        objectAnimator = ObjectAnimator.ofFloat(imageView,"rotation",0f, angle);
+        objectAnimator.setDuration(1000);
+        objectAnimator.start();
+    }
+
+    private void setData(int sys, int dia, int pr) {
+        if (isunit){
+            sys_data.setText(sys+"");
+            dia_data.setText(dia+"");
+            pr_data.setText(pr+"");
+            sys_unit.setText(getActivity().getString(R.string.mmHg));
+            dia_unit.setText(getActivity().getString(R.string.mmHg));
+            sys_scope.setText(getActivity().getString(R.string.normal_sys));
+            dia_scope.setText(getActivity().getString(R.string.normal_dia));
+        }else {
+            sys = (int)(0.133 * sys);
+            dia = (int)(0.133 * dia);
+            sys_data.setText(sys+"");
+            dia_data.setText(dia+"");
+            pr_data.setText(pr+"");
+            sys_unit.setText(getActivity().getString(R.string.kPa));
+            dia_unit.setText(getActivity().getString(R.string.kPa));
+            sys_scope.setText(getActivity().getString(R.string.normal_sys_kpa));
+            dia_scope.setText(getActivity().getString(R.string.normal_dia_kpa));
+        }
+
+    }
+
+    private float getAngle(int data,int bigStart, int bigEnd) {
+        float BigMax = bigEnd - bigStart;
+        float one =  270f/BigMax;
+        float smalldiff = data - bigStart;
+        float angle = smalldiff * one;
+        return angle;
+    }
+    private float getAngle(float data,int bigStart, int bigEnd) {
+        float BigMax = bigEnd - bigStart;
+        float one =  270f/BigMax;
+        float smalldiff = data - bigStart;
+        float angle = smalldiff * one;
+        return angle;
+    }
+
+
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    @OnClick({R.id.calendar_left,R.id.calendar_right,R.id.calender_select})
+    public void onClick(View view) {
+        switch (view.getId()){
+            case R.id.calendar_left:
+                Calendar beginCalendar= DateUtils.strToCalendar(beginDate);
+                if (calendar.before(beginCalendar) || isBegin(calendar)){
+                    return;
+                }
+                calendar.add(Calendar.DATE, -1);
+                setViewData(calendar);
+                setTextDate();
+                break;
+
+            case R.id.calendar_right:
+                if (calendar.after(Calendar.getInstance()) || DateUtils.isToday(calendar)){
+                    return;
+                }
+                calendar.add(Calendar.DATE, 1);
+                setViewData(calendar);
+                setTextDate();
+                break;
+
+            case R.id.calender_select:
+                Bundle bundle = new Bundle();
+                bundle.putInt("type", DevicesType.All);
+                startActivity(CalenderSelectActivity.class, bundle);
+                getActivity().overridePendingTransition(R.anim.bottom_in,R.anim.bottom_silent);
+                break;
+            default:
+        }
+    }
+    public void changeArrowImage(Calendar calendar){
+        Calendar beginCalendar= DateUtils.strToCalendar(beginDate);
+        if (isBegin(Calendar.getInstance())){
+            calendar_left.setImageResource(R.mipmap.left_gay);
+            calendar_right.setImageResource(R.mipmap.right_gay);
+            return;
+        }
+        if (DateUtils.isToday(calendar)){
+            calendar_left.setImageResource(R.mipmap.calendar_left);
+            calendar_right.setImageResource(R.mipmap.right_gay);
+        }
+        Calendar c = Calendar.getInstance();
+        c.add(Calendar.DATE,-1);
+        if ( calendar.after(beginCalendar) && calendar.before(c)){
+            calendar_left.setImageResource(R.mipmap.calendar_left);
+            calendar_right.setImageResource(R.mipmap.arrow_right);
+        }
+        if (isBegin(calendar)){
+            calendar_left.setImageResource(R.mipmap.left_gay);
+            calendar_right.setImageResource(R.mipmap.arrow_right);
+        }
+    }
+
+    public static boolean isBegin(Calendar calendar){
+        int Year = calendar.get(Calendar.YEAR);
+        int Month = calendar.get(Calendar.MONTH);
+        int Day = calendar.get(Calendar.DATE);
+        Calendar begin = DateUtils.strToCalendar(beginDate);
+        int nYear = begin.get(Calendar.YEAR);
+        int nMonth = begin.get(Calendar.MONTH);
+        int nDay = begin.get(Calendar.DAY_OF_MONTH);
+        if (Year == nYear&& Month == nMonth &&Day == nDay){
+            return true;
+        }
+        return false;
+    }
+    private void setTextDate() {
+        tv_year.setText(calendar.get(Calendar.YEAR) + "");
+        tv_month.setText(calendar.get(Calendar.MONTH) + 1 + "");
+        tv_day.setText(calendar.get(Calendar.DAY_OF_MONTH) + "");
+        changeArrowImage(calendar);
+    }
+
+    @Override
+    public void onRefresh() {
+        initCard();
+        swipeRefreshLayout.setRefreshing(false);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        getActivity().unregisterReceiver(broadcastReceiver);
+        getActivity().unregisterReceiver(broadcastReceiver1);
+    }
+}

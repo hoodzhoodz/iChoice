@@ -1,0 +1,303 @@
+package com.choicemmed.ichoice.healthcheck.service;
+
+import android.app.Service;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothManager;
+import android.content.Context;
+import android.content.Intent;
+import android.os.Binder;
+import android.os.Handler;
+import android.os.IBinder;
+import android.util.Log;
+
+import com.choicemmed.cbp1k1sdkblelibrary.utils.ErrorCode;
+import com.choicemmed.common.ByteUtils;
+import com.choicemmed.common.LogUtils;
+import com.choicemmed.common.ThreadManager;
+import com.choicemmed.ichoice.framework.application.App;
+import com.choicemmed.ichoice.framework.utils.ParesUtils;
+import com.choicemmed.ichoice.healthcheck.db.DeviceOperation;
+import com.choicemmed.ichoice.healthcheck.db.W314B4Operation;
+import com.choicemmed.ichoice.framework.utils.DevicesType;
+import com.choicemmed.wristpulselibrary.cmd.invoker.W314b4Invoker;
+import com.choicemmed.wristpulselibrary.cmd.listener.W314Listener;
+import com.choicemmed.wristpulselibrary.entity.Device;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import pro.choicemmed.datalib.DeviceInfo;
+import pro.choicemmed.datalib.W314B4Data;
+
+/**
+ * Created by
+ *
+ * @author Jiangnan
+ * @Date 2020/1/17.
+ */
+public class W314BleConService extends Service implements W314Listener {
+
+    public static final String TAG = "W314BleConService";
+    private List<DeviceInfo> list;
+    private W314b4Invoker invoker;
+    Device device;
+    private ScanBleBinder binder = new ScanBleBinder();
+//    private Subscription subscription;
+    public static boolean BLUETOOTH_CONNECT_STATE = false;
+    public static boolean BLUETOOTH_SYNC_STATE = false;
+    public static boolean BLUETOOTH_REALTIME_STATE = false;
+    private Handler handler = new Handler();
+
+    @Override
+    public void onBindDeviceSuccess(Device mDevice) {
+
+    }
+
+    @Override
+    public void onBindDeviceFail(int message) {
+        BLUETOOTH_CONNECT_STATE = false;
+        LogUtils.d(TAG, "连接设备失败");
+    }
+
+
+    @Override
+    public void onError(int message) {
+        LogUtils.d(TAG, "蓝牙连接返回错误信息----->" + message);
+        switch (message) {
+            //未打开蓝牙
+            case ErrorCode.ERROR_BLUETOOTH_NOT_OPEN:
+                openBluetoothBle();
+                break;
+            case ErrorCode.ERROR_GATT_EXCEPTION:
+                if (BLUETOOTH_REALTIME_STATE || BLUETOOTH_SYNC_STATE) {
+                    if (device != null){
+                        connectW341B4(device);
+                    }
+                }
+                break;
+            default:
+        }
+
+    }
+
+    @Override
+    public void onConnectedDeviceSuccess() {
+        LogUtils.d(TAG, "连接设备成功");
+        invoker.stopScan();
+        BLUETOOTH_CONNECT_STATE = true;
+        if (BLUETOOTH_SYNC_STATE) {
+            invoker.onSync();
+        } else if (BLUETOOTH_REALTIME_STATE) {
+            invoker.onRealTimeStart();
+        }
+    }
+
+    @Override
+    public void onDisconnected() {
+        BLUETOOTH_CONNECT_STATE = false;
+        BLUETOOTH_SYNC_STATE = false;
+        BLUETOOTH_REALTIME_STATE = false;
+    }
+
+    @Override
+    public void onStateChanged(int bleState, int state) {
+
+    }
+
+    @Override
+    public void onRecordDataResponse(String recordData, String recordTime) {
+        byte[] bytesData = ByteUtils.hexString2Bytes(recordData);
+        byte[] bytesTime = ByteUtils.hexString2Bytes(recordTime);
+        LogUtils.d(TAG, "接收到的开关机数据----->" + recordTime);
+        LogUtils.d(TAG, "接收到的血氧脉率数据----->" + recordData);
+        List<W314B4Data> listTime = ParesUtils.analysisTimeW314(bytesTime);
+        LogUtils.d(TAG, "处理后的开关机数据---->" + listTime.toString());
+        W314B4Operation w314B4Operation = new W314B4Operation(this);
+
+        List<W314B4Data> recordHistory = new ArrayList<>();
+        for (W314B4Data recordTimeAll: listTime){
+            String start = recordTimeAll.getStartDate();
+            String end = recordTimeAll.getEndDate();
+            if (!start.isEmpty() && !end.isEmpty()) {
+                ParesUtils.paresDataW314(bytesData, recordTimeAll, recordHistory);
+            }
+        }
+        LogUtils.d(TAG, "解析后的数据recordHistory---->" + recordHistory.toString());
+
+        if (!recordHistory.isEmpty()){
+            for (W314B4Data w314B4Data:recordHistory){
+                w314B4Operation.insertW314B4(w314B4Data);
+            }
+        }
+        Intent intent = new Intent();
+        intent.setAction("W314BleConService:onRecordDataResponse");
+        sendBroadcast(intent);
+
+    }
+
+    @Override
+    public void onRealTimeSpoData(int realTimeSpoData) {
+        Log.d(TAG, "realTimeSpoData:" + realTimeSpoData);
+        Intent intent = new Intent();
+        intent.putExtra("realTimeSpoData", realTimeSpoData);
+        intent.setAction("W314BleConService:realTimeSpoData");
+        sendBroadcast(intent);
+    }
+
+    @Override
+    public void onRealTimePRData(int realTimePRData) {
+        Log.d(TAG, "realTimePRData:" + realTimePRData);
+        Intent intent = new Intent();
+        intent.putExtra("realTimePRData", realTimePRData);
+        intent.setAction("W314BleConService:realTimePRData");
+        sendBroadcast(intent);
+    }
+
+    @Override
+    public void exitSuccess() {
+        BLUETOOTH_CONNECT_STATE = false;
+        if (BLUETOOTH_SYNC_STATE) {
+            BLUETOOTH_SYNC_STATE = false;
+            Intent intent = new Intent();
+            intent.setAction("W314BleConService:exitSuccess");
+            sendBroadcast(intent);
+        }
+        BLUETOOTH_REALTIME_STATE = false;
+    }
+
+    @Override
+    public void onRealTimeNone() {
+
+    }
+
+    @Override
+    public void onRealTimeWaveData(Float realTimeWaveData) {
+
+    }
+
+    public class ScanBleBinder extends Binder {
+
+        public void cancelConnect() {
+//            if (subscription != null && subscription.isUnsubscribed()) {
+//                subscription.unsubscribe();
+//            }
+            BLUETOOTH_CONNECT_STATE = false;
+            BLUETOOTH_SYNC_STATE = false;
+            BLUETOOTH_REALTIME_STATE = false;
+            LogUtils.d(TAG, "关闭Gatt,取消所有待连接！");
+            invoker.disconnectDevice();
+        }
+
+        public void onSyncData() {
+            LogUtils.d(TAG, "----startConnectBle-----");
+            BLUETOOTH_SYNC_STATE = true;
+            init();
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    if (!BLUETOOTH_CONNECT_STATE) {
+                        BLUETOOTH_SYNC_STATE = false;
+                        ThreadManager.cancelTask();
+                        invoker.disconnectDevice();
+                        Intent intent = new Intent();
+                        intent.setAction("W314BleConService:connectFail");
+                        sendBroadcast(intent);
+                        handler.removeCallbacksAndMessages(null);
+                    }
+                }
+            }, 10000);
+        }
+
+        public void onRealTimeStart() {
+            BLUETOOTH_REALTIME_STATE = true;
+            init();
+        }
+
+        public void onRealTimeEnd() {
+            if (BLUETOOTH_CONNECT_STATE && BLUETOOTH_REALTIME_STATE) {
+                invoker.onRealTimeQuit(0);
+            }
+        }
+
+        public void onSyncQuit() {
+            invoker.onSyncQuit();
+            invoker.disconnectDevice();
+        }
+
+    }
+
+    private void init() {
+        list = new DeviceOperation(this).queryByUserIdType(App.getAppData().userProfileInfo.getUserId(), DevicesType.WristPluseOximeter);
+        if (list.isEmpty()) {
+            return;
+        }
+        openBluetoothBle();
+        LogUtils.d(TAG, "devices：" + list.toString());
+        searchDv(list);
+
+    }
+
+
+    private void searchDv(final List<DeviceInfo> list) {
+        if (list.size() != 0) {
+            for (final DeviceInfo deviceInfo : list) {
+                ThreadManager.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        device = new Device();
+                        device.setDeviceName(deviceInfo.getDeviceName());
+                        device.setDeviceMacAddress(deviceInfo.getBluetoothId());
+                        connectW341B4(device);
+                    }
+                });
+            }
+        } else {
+            LogUtils.d(TAG, "没有绑定设备");
+        }
+    }
+
+    private void openBluetoothBle() {
+        BluetoothManager bluetoothManager = (BluetoothManager) W314BleConService.this.getSystemService(Context.BLUETOOTH_SERVICE);
+        BluetoothAdapter bluetoothAdapter = bluetoothManager.getAdapter();
+        if (bluetoothAdapter != null && !bluetoothAdapter.isEnabled()) {
+            LogUtils.d(TAG, "检测到蓝牙未打开：重新开启蓝牙！");
+            bluetoothAdapter.enable();//不弹对话框直接开启蓝牙
+        }
+    }
+
+    private void connectW341B4(Device device) {
+        invoker.connectDevice(device);
+    }
+
+//    private void connectDelayW314B4(final int delatTime) {
+//        subscription = Observable.timer(delatTime, TimeUnit.SECONDS)
+//                .subscribe(new Action1<Long>() {
+//                    @Override
+//                    public void call(Long aLong) {
+//                        if (device == null) {
+//                            return;
+//                        }
+//                        connectW341B4(device);
+//                    }
+//                });
+//    }
+
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        Log.d(TAG, "-------onBind------");
+        return binder;
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        Log.d(TAG, "-------onCreate-----");
+        invoker = new W314b4Invoker(this, this);
+    }
+
+    @Override
+    public boolean onUnbind(Intent intent) {
+        return super.onUnbind(intent);
+    }
+}

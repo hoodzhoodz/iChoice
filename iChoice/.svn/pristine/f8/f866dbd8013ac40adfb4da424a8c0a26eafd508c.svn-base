@@ -1,0 +1,63 @@
+package com.choicemmed.ichoice.healthcheck.db;
+
+import android.content.Context;
+
+import com.choicemmed.ichoice.framework.base.BaseDb;
+
+import java.util.List;
+
+import pro.choicemmed.datalib.OxSpotData;
+
+public class OxSpotOperation extends BaseDb {
+    private static final String TAG = OxSpotOperation.class.getSimpleName();
+    private Context context;
+
+    public OxSpotOperation(Context context) {
+        dao = getDaoSession(context).getOxSpotDataDao();
+        this.context = context;
+    }
+
+    public long insertOxSpotByUser(OxSpotData oxSpotData) {
+        return dao.insert(oxSpotData);
+    }
+
+    public List<OxSpotData> queryBySyncState(String userId) {
+        return dao.queryBuilder().where(OxSpotDataDao.Properties.UserId.eq(userId)).orderAsc(OxSpotDataDao.Properties.MeasureDateTime).build().list();
+    }
+
+    public List<OxSpotData> queryByDate(String dateString, String userId) {
+        return dao.queryBuilder().where(OxSpotDataDao.Properties.MeasureDateTime.like("%" + dateString + "%"), OxSpotDataDao.Properties.UserId.eq(userId)).orderDesc(OxSpotDataDao.Properties.MeasureDateTime).build().list();
+    }
+
+    public OxSpotData queryByNow(String userId) {
+        List<OxSpotData> list = dao.queryBuilder().where(OxSpotDataDao.Properties.UserId.eq(userId)).build().list();
+        if (list.isEmpty()) {
+            return null;
+        }
+        return list.get(list.size() - 1);
+
+    }
+
+    /**
+     * 查询历史记录（天）
+     * @param userId 用户id
+     * @param startTime 开始日期 （yyyy-MM-dd HH:mm:ss）
+     * @param endTime 结束日期 （yyyy-MM-dd HH:mm:ss）
+     * @return
+     */
+    public List<OxSpotData> queryToDay(String userId, String startTime, String endTime) {
+        String sql = "WHERE MEASURE_DATE_TIME BETWEEN\""
+                + startTime
+                + "\" AND\""
+                + endTime
+                + "\" AND USER_ID= "
+                + userId
+                + " GROUP BY substr(MEASURE_DATE_TIME,1,18) "
+                + "ORDER BY MEASURE_DATE_TIME DESC";
+        List<OxSpotData> oxSpotDataList = dao.queryRaw(sql);
+        if (oxSpotDataList == null || oxSpotDataList.isEmpty()) {
+            return null;
+        }
+        return oxSpotDataList;
+    }
+}

@@ -1,0 +1,236 @@
+package com.choicemmed.ichoice.healthcheck.service;
+
+import android.app.Service;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCallback;
+import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
+import android.bluetooth.BluetoothGattService;
+import android.content.Intent;
+import android.os.Binder;
+import android.os.IBinder;
+import android.util.Log;
+
+import com.choicemmed.common.BleUtils;
+import com.choicemmed.common.ByteUtils;
+import com.choicemmed.common.LogUtils;
+import com.choicemmed.ichoice.framework.application.IchoiceApplication;
+import com.choicemmed.ichoice.healthcheck.db.DeviceOperation;
+import com.choicemmed.ichoice.framework.utils.DevicesType;
+import com.choicemmed.ichoice.healthcheck.model.BleConnectListener;
+
+import java.util.List;
+import java.util.UUID;
+
+import pro.choicemmed.datalib.DeviceInfo;
+
+public class BleConService extends Service {
+    public static final String TAG = "BleConService";
+    private static List<DeviceInfo> list;
+    private static BluetoothDevice device;
+    private static BluetoothAdapter bluetoothAdapter;
+    private ScanBleBinder binder = new ScanBleBinder();
+    private static BluetoothGatt bluetoothGatt;
+
+
+    public void setBleConnectListener(BleConnectListener bleConnectListener) {
+        this.bleConnectListener = bleConnectListener;
+    }
+
+    private BleConnectListener bleConnectListener;
+
+    public BleConService() {
+    }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        return binder;
+    }
+
+    public class ScanBleBinder extends Binder {
+        public void setListener(BleConnectListener bleConnectListener) {
+            setBleConnectListener(bleConnectListener);
+        }
+
+        public void init() {
+            initBle();
+        }
+    }
+
+    private void initBle() {
+        BleUtils.TestBleResult bleResult = BleUtils.testBle(this);
+        if (!bleResult.isAvailable) {
+            bleConnectListener.onError(bleResult.errorMsg);
+            return;
+        }
+        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        list = new DeviceOperation(IchoiceApplication.getInstance()).queryByUserIdType(IchoiceApplication.getAppData().userProfileInfo.getUserId(),
+                DevicesType.Thermometer);
+        connectDevice();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (bluetoothGatt != null) {
+            bluetoothGatt.disconnect();
+            bluetoothGatt.close();
+        }
+        device = null;
+    }
+
+    public static void resetGatt() {
+        if (bluetoothGatt != null) {
+            bluetoothGatt.disconnect();
+        }
+        device = null;
+    }
+
+    private synchronized void connectDevice() {
+        Log.d(TAG, "开始连接connectDevice");
+        try {
+            resetGatt();
+            device = bluetoothAdapter.getRemoteDevice(list.get(0).getBluetoothId());
+            Log.d(TAG, "开始连接……" + device);
+            bluetoothGatt = device.connectGatt(this, false, gattCallback);
+        } catch (Exception e) {
+            Log.d(TAG, "连接出错");
+            e.printStackTrace();
+        }
+    }
+
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+    }
+
+    private BluetoothGattCallback gattCallback = new CTF308BlueToothGattCallback(this);
+
+    private static final class CTF308BlueToothGattCallback extends BluetoothGattCallback {
+        private static final String CLIENT_CHARACTERISTIC_CONFIG = "00002902-0000-1000-8000-00805f9b34fb";
+
+        private static final String Service_UUID = "0000fff0-0000-1000-8000-00805f9b34fb";
+        private static final String Characteristic_UUID_Notify = "0000fff1-0000-1000-8000-00805f9b34fb";
+        private BleConService bleConService;
+
+        CTF308BlueToothGattCallback(BleConService bleConService) {
+            this.bleConService = bleConService;
+        }
+
+        @Override
+        public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
+            super.onConnectionStateChange(gatt, status, newState);
+            LogUtils.d(TAG, "status:  " + status + "newState:  " + newState);
+            if (status != BluetoothGatt.GATT_SUCCESS) {
+                gatt.close();
+                bleConService.connectDevice();
+                return;
+            }
+            if (newState == BluetoothGatt.STATE_CONNECTED) {
+                LogUtils.d(TAG, "蓝牙连接成功");
+                if (gatt.discoverServices()) {
+                    LogUtils.d(TAG, "开始发现服务");
+                } else {
+                    LogUtils.d(TAG, "异常：开始发现服务失败");
+                    bleConService.connectDevice();
+                }
+            } else if (newState == BluetoothGatt.STATE_DISCONNECTED) {
+                LogUtils.d(TAG, "蓝牙已断开");
+                gatt.close();
+                bleConService.connectDevice();
+            }
+        }
+
+        @Override
+        public void onServicesDiscovered(BluetoothGatt gatt, int status) {
+            LogUtils.d(TAG, "onServicesDiscovered");
+            super.onServicesDiscovered(gatt, status);
+            if (status != BluetoothGatt.GATT_SUCCESS) {
+                LogUtils.d(TAG, "异常：发现服务失败，status=" + status);
+                bleConService.connectDevice();
+                return;
+            }
+
+            BluetoothGattService service = gatt.getService(UUID.fromString(Service_UUID));
+            if (service == null) {
+                LogUtils.d(TAG, "异常：发现的服务中不包含体温服务");
+                bleConService.connectDevice();
+                return;
+            }
+            BluetoothGattCharacteristic characteristic = service.getCharacteristic(UUID.fromString(Characteristic_UUID_Notify));
+            if (setCharacteristicNotification(gatt, characteristic)) {
+                LogUtils.d(TAG, "设置监听成功");
+            } else {
+                LogUtils.d(TAG, "异常：设置监听成功失败");
+                bleConService.connectDevice();
+            }
+        }
+
+        @Override
+        public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
+            super.onCharacteristicRead(gatt, characteristic, status);
+            if (status != BluetoothGatt.GATT_SUCCESS) {
+                Log.d(TAG, "异常：读特征状态失败，status=" + status);
+                bleConService.connectDevice();
+                return;
+            }
+            Log.d(TAG, "读特征成功");
+        }
+
+        @Override
+        public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
+            super.onDescriptorWrite(gatt, descriptor, status);
+            if (status != BluetoothGatt.GATT_SUCCESS) {
+                LogUtils.d(TAG, "异常:写描述符失败，status=" + status);
+                bleConService.connectDevice();
+            }
+        }
+
+        @Override
+        public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
+            super.onCharacteristicChanged(gatt, characteristic);
+            byte[] data = characteristic.getValue();
+            String dataString = ByteUtils.bytes2HexString(data);
+            LogUtils.d(TAG, "收到红外体温数据：" + dataString);
+//            426f64793a  33362e34 43000d0a
+            if (dataString.startsWith("426f64793a") && dataString.endsWith("43000d0a")) {
+                String sResult = new StringBuilder().append((char) (data[5] & 0xff))
+                        .append((char) (data[6] & 0xff))
+                        .append((char) (data[8] & 0xff))
+                        .toString();
+                float fResult = ((float) (Integer.parseInt(sResult))) / 10;
+                bleConService.bleConnectListener.onDataResponse(String.valueOf(fResult));
+                LogUtils.d(TAG, "体温：" + fResult);
+            } else if (dataString.startsWith("426f64793a") && dataString.endsWith("46000d0a")) {
+                String sResult = new StringBuilder().append((char) (data[5] & 0xff))
+                        .append((char) (data[6] & 0xff))
+                        .append((char) (data[8] & 0xff))
+                        .toString();
+                float fResult = ((float) (Integer.parseInt(sResult))) / 10;
+
+                bleConService.bleConnectListener.onDataResponse(String.valueOf(fResult));
+                LogUtils.d(TAG, "体温：" + fResult);
+            }
+        }
+
+        private boolean setCharacteristicNotification(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
+            if (gatt == null || characteristic == null) {
+                return false;
+            }
+            if (!gatt.setCharacteristicNotification(characteristic, true)) {
+                return false;
+            }
+
+            BluetoothGattDescriptor descriptor = characteristic.getDescriptor(UUID.fromString(CLIENT_CHARACTERISTIC_CONFIG));
+            if (descriptor != null) {
+                descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+                gatt.writeDescriptor(descriptor);
+            }
+            return true;
+        }
+    }
+
+}

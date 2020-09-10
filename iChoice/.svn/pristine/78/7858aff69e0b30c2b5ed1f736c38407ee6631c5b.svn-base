@@ -1,0 +1,294 @@
+package com.choicemmed.ichoice.healthcheck.fragment.pulseoximeter;
+
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.graphics.Color;
+import android.util.Log;
+import android.view.MotionEvent;
+import android.widget.ImageView;
+import android.widget.TextView;
+
+import com.choicemmed.common.DateUtils;
+import com.choicemmed.common.FormatUtils;
+import com.choicemmed.ichoice.R;
+import com.choicemmed.ichoice.framework.application.App;
+import com.choicemmed.ichoice.framework.base.BaseFragment;
+import com.choicemmed.ichoice.healthcheck.custom.DayFormatter;
+import com.choicemmed.ichoice.healthcheck.db.OxSpotOperation;
+import com.choicemmed.ichoice.healthcheck.entity.AvgData;
+import com.choicemmed.ichoice.healthcheck.entity.AvgOxData;
+import com.choicemmed.ichoice.healthreport.commend.AvgDataUtils;
+import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.XAxis;
+import com.github.mikephil.charting.components.YAxis;
+import com.github.mikephil.charting.data.Entry;
+import com.github.mikephil.charting.highlight.Highlight;
+import com.github.mikephil.charting.listener.ChartTouchListener;
+import com.github.mikephil.charting.listener.OnChartGestureListener;
+import com.github.mikephil.charting.listener.OnChartValueSelectedListener;
+import com.prolificinteractive.materialcalendarview.CalendarDay;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import butterknife.BindView;
+import pro.choicemmed.datalib.OxSpotData;
+
+public class OxDayFragment extends BaseFragment implements OnChartValueSelectedListener, OnChartGestureListener {
+    @BindView(R.id.ox_spo2_day_chart)
+    LineChart spo2Chart;
+    @BindView(R.id.ox_pr_day_chart)
+    LineChart prChart;
+
+    @BindView(R.id.tv_year)
+    TextView tv_year;
+    @BindView(R.id.tv_month)
+    TextView tv_month;
+    @BindView(R.id.tv_day)
+    TextView tv_day;
+    @BindView(R.id.calendar_left)
+    ImageView calendar_left;
+    @BindView(R.id.calendar_right)
+    ImageView calendar_right;
+
+    @BindView(R.id.textView26)
+    TextView times;
+    @BindView(R.id.ox_trend_bottom_spo2_tv)
+    TextView spo2Value_tv;
+    @BindView(R.id.ox_trend_bottom_pr_tv)
+    TextView prValue_tv;
+
+    Calendar calendar;
+    Context mContext;
+    private static String beginDate = FormatUtils.getDateTimeString(new Date(), FormatUtils.template_DbDateTime);
+    private static String endDate;
+    int daysize = 1;
+    float max;
+    Map<Integer, AvgOxData> avgOxDataMap = new HashMap<>();
+
+    BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            try {
+                int year = intent.getIntExtra("year", CalendarDay.today().getYear());
+                int month = intent.getIntExtra("month", CalendarDay.today().getMonth());
+                int day = intent.getIntExtra("day", CalendarDay.today().getDay());
+                calendar.set(year, month, day);
+                seTextDate(calendar);
+                CalendarMoveChart(calendar);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    };
+
+    private OxSpotOperation oxSpotOperation;
+    int spo2, PR, RR;
+
+    @Override
+    protected int contentViewID() {
+        return R.layout.fragment_ox_spot_day_trend;
+    }
+
+    @Override
+    protected void initialize() {
+        calendar = Calendar.getInstance();
+        initData();
+        initSpO2Chart();
+        initPRChart();
+        initReceiver();
+        seTextDate(calendar);
+
+
+    }
+
+    private void initReceiver() {
+        IntentFilter intentFilter = new IntentFilter("CalenderSelect");
+        getActivity().registerReceiver(broadcastReceiver, intentFilter);
+    }
+
+    private void seTextDate(Calendar calendar) {
+
+    }
+
+    private void CalendarMoveChart(Calendar calendar) {
+
+    }
+
+    public void initData() {
+        oxSpotOperation = new OxSpotOperation(getContext());
+        List<OxSpotData> list = oxSpotOperation.queryBySyncState(App.getAppData().userProfileInfo.getUserId());
+        if (list.isEmpty()) {
+            return;
+        }
+        OxSpotData newOxSpotData = list.get(list.size() - 1);
+        spo2 = newOxSpotData.getBloodOxygen();
+        PR = newOxSpotData.getPulseRate();
+//        RR
+        setTexts();
+        endDate = newOxSpotData.getMeasureDateTime();
+        times.setText(endDate.substring(0, 10));
+
+        beginDate = list.get(0).getMeasureDateTime();
+        String nowdate = FormatUtils.getDateTimeString(Calendar.getInstance().getTime(), FormatUtils.template_DbDateTime);
+        daysize = DateUtils.differentDays(beginDate, nowdate);
+        Log.d("SqlDate", beginDate + "|" + endDate + "|" + daysize);
+    }
+
+    private void setTexts() {
+        spo2Value_tv.setText(spo2 + "");
+        prValue_tv.setText(PR + "");
+    }
+
+    private void initSpO2Chart() {
+        //spo2
+        spo2Chart.setBackgroundColor(Color.WHITE);
+        spo2Chart.setDrawGridBackground(true);
+        spo2Chart.setDrawBorders(false);
+        spo2Chart.setGridBackgroundColor(Color.WHITE);
+        spo2Chart.getDescription().setEnabled(false);
+        spo2Chart.setScaleEnabled(false);
+        spo2Chart.getAxisRight().setEnabled(false);
+
+        spo2Chart.setOnChartValueSelectedListener(this);
+        spo2Chart.setOnChartGestureListener(this);
+
+        XAxis xAxis = spo2Chart.getXAxis();
+        xAxis.setTextSize(12f);
+        xAxis.setAxisMinimum(0f);
+        max = daysize * 24;
+        xAxis.setAxisMaximum(max);
+
+        xAxis.setValueFormatter(new DayFormatter());
+        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+        spo2Chart.setVisibleXRange(0, 24);
+        xAxis.setLabelCount(8);
+
+        YAxis leftAxis = spo2Chart.getAxisLeft();
+        leftAxis.setAxisMaximum(210);
+        leftAxis.setAxisMinimum(0);
+        leftAxis.setLabelCount(8, true);
+        YAxis rightAxis = spo2Chart.getAxisRight();
+        rightAxis.setAxisMaximum(210);
+        rightAxis.setAxisMinimum(0);
+        rightAxis.setLabelCount(8, true);
+
+
+    }
+
+    private void initPRChart() {
+        //pr
+        prChart.setBackgroundColor(Color.WHITE);
+        prChart.setDrawGridBackground(true);
+        prChart.setDrawBorders(false);
+        prChart.setGridBackgroundColor(Color.WHITE);
+        prChart.getDescription().setEnabled(false);
+        prChart.setScaleEnabled(false);
+        prChart.getAxisRight().setEnabled(false);
+
+        prChart.setOnChartValueSelectedListener(this);
+        prChart.setOnChartGestureListener(this);
+
+        XAxis xAxis_pr = prChart.getXAxis();
+        xAxis_pr.setTextSize(12f);
+        xAxis_pr.setAxisMinimum(0f);
+        max = daysize * 24;
+        xAxis_pr.setAxisMaximum(max);
+
+        xAxis_pr.setValueFormatter(new DayFormatter());
+        xAxis_pr.setPosition(XAxis.XAxisPosition.BOTTOM);
+        prChart.setVisibleXRange(0, 24);
+        xAxis_pr.setLabelCount(8);
+
+        YAxis leftAxis_pr = prChart.getAxisLeft();
+        leftAxis_pr.setAxisMaximum(210);
+        leftAxis_pr.setAxisMinimum(0);
+        leftAxis_pr.setLabelCount(8, true);
+        YAxis rightAxis_pr = prChart.getAxisRight();
+        rightAxis_pr.setAxisMaximum(210);
+        rightAxis_pr.setAxisMinimum(0);
+        rightAxis_pr.setLabelCount(8, true);
+
+    }
+
+    private void setChartData() {
+        List<Entry> spo2List = new ArrayList<>();
+        List<Entry> prList = new ArrayList<>();
+        List<AvgOxData> avgOxDataList = new ArrayList<>();
+        Calendar c = DateUtils.strToCalendar(beginDate);
+        c.set(Calendar.HOUR_OF_DAY, 0);
+        c.set(Calendar.MINUTE, 0);
+        c.set(Calendar.SECOND, 0);
+        for (int i = 0; i <= max; i = i + 3) {
+            String dataTimeStart = FormatUtils.getDateTimeString(c.getTime(), FormatUtils.template_DbDateTime);
+            c.add(Calendar.HOUR_OF_DAY, 3);
+            String dataTimeEnd = FormatUtils.getDateTimeString(c.getTime(), FormatUtils.template_DbDateTime);
+            Log.d("sqlTime", dataTimeStart + "|" + dataTimeEnd);
+            List<OxSpotData> oxSpotDataList = oxSpotOperation.queryToDay(App.getAppData().userProfileInfo.getUserId(), dataTimeStart, dataTimeEnd);
+            if (oxSpotDataList != null) {
+                AvgOxData avgOxData = AvgDataUtils.getAvgOxData(oxSpotDataList);
+                avgOxDataMap.put(i, avgOxData);
+                avgOxDataList.add(avgOxData);
+                spo2List.add(new Entry(i, avgOxData.getSpO2Avg()));
+                prList.add(new Entry(i, avgOxData.getPRAvg()));
+
+            }
+        }
+    }
+
+    @Override
+    public void onChartGestureStart(MotionEvent me, ChartTouchListener.ChartGesture lastPerformedGesture) {
+
+    }
+
+    @Override
+    public void onChartGestureEnd(MotionEvent me, ChartTouchListener.ChartGesture lastPerformedGesture) {
+
+    }
+
+    @Override
+    public void onChartLongPressed(MotionEvent me) {
+
+    }
+
+    @Override
+    public void onChartDoubleTapped(MotionEvent me) {
+
+    }
+
+    @Override
+    public void onChartSingleTapped(MotionEvent me) {
+
+    }
+
+    @Override
+    public void onChartFling(MotionEvent me1, MotionEvent me2, float velocityX, float velocityY) {
+
+    }
+
+    @Override
+    public void onChartScale(MotionEvent me, float scaleX, float scaleY) {
+
+    }
+
+    @Override
+    public void onChartTranslate(MotionEvent me, float dX, float dY) {
+
+    }
+
+    @Override
+    public void onValueSelected(Entry e, Highlight h) {
+
+    }
+
+    @Override
+    public void onNothingSelected() {
+
+    }
+}

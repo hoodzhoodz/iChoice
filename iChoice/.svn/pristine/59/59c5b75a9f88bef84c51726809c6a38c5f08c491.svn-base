@@ -1,0 +1,259 @@
+<resources>
+    <string name="app_name">超思健康</string>
+    <string name="img_des">欢迎</string>
+    <!-- guide-->
+    <string name="text_guide1">轻松查看 \n 您的健康数据</string>
+    <string name="text_guide2">无线数据传输和分享</string>
+    <string name="text_guide3">您的健康安心掌控</string>
+    <string name="welcome">欢迎</string>
+    <!-- Login -->
+
+    <string name="password_is_incorrect">密码错误</string>
+    <string name="Email_address_does_not_exist">该账号未注册</string>
+
+
+    <string name="user_name">邮箱或手机号</string>
+    <string name="password">密码</string>
+    <string name="forget_password">忘记密码？</string>
+    <string name="login">登录</string>
+    <string name="register">注册</string>
+    <!-- register -->
+
+    <string name="account_has_already_exists">此账号已注册</string>
+    <string name="rsend_code">重新发送</string>
+    <string name="send_code_time">秒</string>
+    <string name="send_code">发送验证码</string>
+    <string name="what_name">您的姓名？</string>
+    <string name="what_gender">您的性别？</string>
+    <string name="what_birthday">您的出生日期？</string>
+    <string name="what_height">您的身高？</string>
+    <string name="what_weight">您的体重？</string>
+    <string name="btn_continue">继续</string>
+    <string name="man">男</string>
+    <string name="woman">女</string>
+    <string name="first_name">名</string>
+    <string name="family_name">姓氏</string>
+    <string name="avatar_tip">为准确了解您的健康状况，\n请告诉我们您的相关信息</string>
+    <string name="take_camera">拍照</string>
+    <string name="take_album">从相册选择</string>
+    <string name="cancel">取消</string>
+    <string name="email_phone">邮箱或手机号</string>
+
+    <string name="validate_code">输入验证码</string>
+    <string name="new_password">新密码</string>
+    <string name="confirm_password">确认密码</string>
+    <string name="forget_pwd_tip">密码必须为8-16个字符，\n 并包含数字和字母</string>
+    <string name="send">发送</string>
+    <string name="finish">完成</string>
+    <string name="ok">好的</string>
+    <string name="yes">是</string>
+    <string name="no">否</string>
+    <string name="new_user">新用户</string>
+    <string name="avatar_popup_tip">数据未保存，您确定要退出吗？</string>
+    <!--foget password-->
+    <string name="fogot_tip">请输入接收新密码 \n 的账号地址</string>
+    <string name="forgot_password">忘记密码</string>
+    <!-- home -->
+    <string name="health_report">健康报告</string>
+    <string name="health_check">健康检测</string>
+    <string name="profile">个人中心</string>
+    <!-- Profile -->
+
+    <string name="old_password_is_incorrect">旧密码不正确</string>
+    <string name="logout">退出登录</string>
+    <string name="settings">设置</string>
+    <string name="male">男</string>
+    <string name="female">女</string>
+    <string name="done">完成</string>
+    <string name="my_devices">我的设备</string>
+    <string name="my_devices_list">设备列表</string>
+    <string name="about_us">关于我们</string>
+    <string name="about_choicemmed">关于超思</string>
+    <string name="disclaimer">免责声明</string>
+    <string name="version">版本号：V</string>
+    <string name="add_devices">添加设备</string>
+    <string name="add_devices_title">添加设备</string>
+    <string name="information">个人信息</string>
+    <string name="current_password">当前密码</string>
+    <string name="search_devices_instructions">请打开您手机的蓝牙，\n 设备上的蓝牙图标会一直 \n 闪烁直到连接成功</string>
+    <string name="y">年</string>
+    <string name="m">月</string>
+    <string name="d">日</string>
+    <!--BindDevice-->
+    <string name="Blood_Pressure">血压计</string>
+    <string name="CBP1K1">CBP1K1</string>
+    <string name="CBP111">CBP111</string>
+    <string name="conect_button">连接设备</string>
+    <string name="connect_text_cft308">请打开您手机的蓝牙，\n 设备上的蓝牙图标会一直 \n 闪烁直到连接成功</string>
+    <string name="connect_text">请打开您手机的蓝牙，\n 设备上的蓝牙图标会一直 \n 闪烁直到连接成功</string>
+    <string name="search_device">正在搜索您的设备</string>
+    <string name="success">连接成功</string>
+    <string name="connect_failure">设备无法连接，请确认\n 您的手机蓝牙是否打开，并确保 \n 已解绑其他已连接的血压计</string>
+    <string name="retry">重新连接</string>
+    <string name="connect_failure_thermometer">设备无法连接，请确认您的手机蓝牙是否打开，并确保已解绑其他已连接的体温计</string>
+    <string name="connect_failure_blood_pressure">设备无法连接，请确认您的手机蓝牙是否打开，并确保已解绑其他已连接的血压计</string>
+    <string name="connect_failure_pulse_oximeter">设备无法连接，请确认您的手机蓝牙是否打开，并确保已解绑其他已连接的血氧仪</string>
+    <string name="connect_failure_wrist_pulse_oximeter">设备无法连接，请确认您的手机蓝牙是否打开，并确保已解绑其他已连接的腕式血氧仪</string>
+
+
+    <!--chart-->
+    <string name="sum">周日</string>
+    <string name="mon">周一</string>
+    <string name="tue">周二</string>
+    <string name="wed">周三</string>
+    <string name="thu">周四</string>
+    <string name="fri">周五</string>
+    <string name="sat">周六</string>
+    <!--Blood Pressure-->
+    <string name="measurement">测量</string>
+    <string name="historical_results">历史记录</string>
+    <string name="historical_trend">历史趋势</string>
+    <string name="trend">趋势图</string>
+    <string name="systolic">舒张压</string>
+    <string name="diastolic">收缩压</string>
+    <string name="pulse">脉率</string>
+    <string name="mmhg">(mmHg)</string>
+    <string name="mmHg">mmHg</string>
+    <string name="kPa">kPa</string>
+    <string name="kpa">(kpa)</string>
+    <string name="bpm">(bpm)</string>
+    <string name="bpreference_title">血压参考范围：</string>
+    <string name="ideal">理想血压</string>
+    <string name="normal">正常血压</string>
+    <string name="ideal_mmhg">120/80 mmHg</string>
+    <string name="normal_mmhg">130/85 mmHg</string>
+
+    <!-- DeviceSetting -->
+    <string name="unit">单位</string>
+    <string name="how_to_use">使用说明</string>
+    <string name="faq">常见问题解答</string>
+    <string name="delete_device">删除设备</string>
+
+    <string name="dialogTitle">温馨提示</string>
+    <string name="disconnect_dialogMsg">是否断开连接</string>
+    <string name="dialog_not">否</string>
+    <string name="dialog_disconnect">断开连接</string>
+    <string name="dialog_yes">是</string>
+    <string name="dialog_no">否</string>
+
+    <string name="blood_pressure">血压计</string>
+    <string name="ecg">心电</string>
+    <string name="pulse_qximeter">血氧仪</string>
+    <string name="therometer">体温计</string>
+    <string name="scale">体重秤</string>
+    <string name="fitness_tracker">健康手环</string>
+    <string name="need_system_window">请允许窗口权限</string>
+
+    <!-- historical result-->
+    <string name="SYS">收缩压</string>
+    <string name="DIA">舒张压</string>
+    <string name="PR">脉率</string>
+
+    <!--    HistoryTrend-->
+    <string name="day">日</string>
+    <string name="week">周</string>
+    <string name="month">月</string>
+    <string name="year">年</string>
+
+    <string name="normal_sys">90-140</string>
+    <string name="normal_dia">60-90</string>
+    <string name="normal_pulse">60-100</string>
+    <string name="normal_sys_kpa">12-19</string>
+    <string name="normal_dia_kpa">8-12</string>
+
+    <string name="Pulse">脉率</string>
+    <string name="bpm_">bpm</string>
+    <!--  Tip-->
+    <string name="tips">小贴士</string>
+    <string name="stay">敬请期待</string>
+    <string name="tip_empty">请填写必填项</string>
+    <string name="tip_email_incorrect">账号格式不正确</string>
+    <string name="tip_password_not">密码必须为8-16个字符，并包含数字和字母</string>
+    <string name="inconsistent_password">密码不一致</string>
+    <string name="login_failed">用户登录失败</string>
+    <string name="send_email">验证码已发送到您的邮箱</string>
+    <string name="send_phone">验证码已发送到您的手机，请注意查收</string>
+    <string name="password_succeed">密码修改成功</string>
+    <string name="tip_logout">确定要退出吗？</string>
+    <string name="images_fails">图片不符合上传标准，上传失败</string>
+    <string name="account_registered">此邮箱已注册</string>
+    <string name="code_fail">帐户不能为空，或者格式不正确</string>
+    <string name="code_timeout">验证码超时（有效时间5分钟）</string>
+    <string name="code_error">验证码错误</string>
+    <string name="code_not">验证码无记录</string>
+    <string name="no_signal">无信号！</string>
+    <string name="tip_birthday">生日格式无效</string>
+    <string name="tip_permission">请打开超思健康的悬停窗口权限，因为有些功能使用时需要调用。</string>
+    <string name="tip_logging">登录中…</string>
+    <string name="tip_delete">确定要删除设备吗？</string>
+    <string name="email_not_exist">邮箱地址不存在</string>
+    <string name="cbp1k1">血压计CBP1K1</string>
+    <string name="device_bound">设备已绑定</string>
+    <string name="permission_fail">用户权限未获取</string>
+    <string name="login_fail">用户登录失败</string>
+    <string name="login_timeout">登录超时，请重新登录</string>
+    <string name="tip_exit">再次点击退出超思健康</string>
+    <string name="not_bluetooth">检测到蓝牙未打开，请打开蓝牙！</string>
+
+    <!--    Wrist Pulse Oximeter -->
+    <string name="wrist_pulse_oximeter">腕式血氧仪</string>
+    <string name="temperature">体温计</string>
+    <string name="infrared_temperature">红外体温计</string>
+    <string name="w314b4">W314B4</string>
+    <string name="CFT308">CFT-308</string>
+    <string name="w628">W628</string>
+    <string name="sleep">睡眠</string>
+    <string name="realtime">实时</string>
+    <string name="history_record">历史记录</string>
+    <string name="odi">氧减指数</string>
+    <string name="temp_result">当前记录</string>
+    <string name="last_record">最后一次记录</string>
+    <string name="no_record_today">今天您还没有测量体温呦</string>
+    <string name="temp_unit">°C</string>
+    <string name="temp_unit1">°F</string>
+    <string name="times">次数</string>
+    <string name="hours">小时</string>
+    <string name="sleep_time">睡眠时长</string>
+    <string name="desaturation_event">氧减事件次数</string>
+    <string name="start">开始时间</string>
+    <string name="end">结束时间</string>
+    <string name="sync">同步数据</string>
+    <string name="report">报告</string>
+    <string name="spo2">%SpO2</string>
+    <string name="pulse_rate">Pulse Rate</string>
+    <string name="pulse_rate_bpm">Pulse Rate（bpm)</string>
+    <string name="time_init">0000-00-00 00:00:00</string>
+    <string name="Normal">正常</string>
+    <string name="Mild">轻微</string>
+    <string name="Moderate">中等</string>
+    <string name="Severe">重度</string>
+    <string name="Sleep_Time">睡眠时长</string>
+    <string name="of_desaturation">氧减事件</string>
+    <string name="device_error">设备错误</string>
+    <string name="syning">数据同步中…</string>
+    <string name="connect_fail">设备连接失败</string>
+    <string name="ble_connect_timeout">蓝牙连接超时</string>
+    <string name="device_disconnect">设备已断开</string>
+    <string name="no_data">今天暂无检测数据</string>
+    <string name="sync_fail">数据同步失败</string>
+    <string name="no_report">报告无法生成，请稍后再试</string>
+    <string name="no_upload">数据上传失败，无法生成报告</string>
+    <string name="not_net">网络加载失败</string>
+    <string name="tips_title"> 发烧范围因年龄而异，\n以下温度范围仅供参考。</string>
+    <string name="tips_one_to_three">0-3 个月</string>
+    <string name="tips_one_to_three_content">正常: ≥35.8-≤37.4℃(≥96.4-≤99.4℉)\n低烧: N/A\n高烧: >37.4℃(>99.4℉)</string>
+    <string name="tips_three_to_thirth_six">3-36 个月</string>
+    <string name="tips_three_to_thirth_six_content"> 正常: ≥35.4-≤37.6℃(≥95.7-≤99.6℉)\n低烧: >37.6-≤38.5℃(>99.6-≤101.3℉)\n高烧: >38.5℃(>101.3℉)</string>
+    <string name="tips_thirth_six_to_more">36 个月以上</string>
+    <string name="tips_thirth_six_to_more_more">正常: ≥35.4-≤37.7℃(≥95.7-≤99.9℉)\n低烧: >37.7-≤39.4℃(>99.9-≤103.0℉)\n高烧: >39.4℃(>103.0℉)</string>
+
+    <!--temp-->
+    <string name="today">今天</string>
+    <string name="pi">PI</string>
+    <string name="rr">RR</string>
+    <string name="rr_bpm">RR (bpm)</string>
+    <string name="respiratory_rate">Respiratory Rate (bpm)</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+</resources>

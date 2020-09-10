@@ -1,0 +1,167 @@
+package com.choicemmed.ichoice.healthcheck.db;
+
+import android.content.Context;
+import android.database.Cursor;
+
+import com.choicemmed.common.LogUtils;
+import com.choicemmed.ichoice.framework.base.BaseDb;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import pro.choicemmed.datalib.CFT308Data;
+import pro.choicemmed.datalib.CFT308DataDao;
+import pro.choicemmed.datalib.OxSpotData;
+import pro.choicemmed.datalib.OxSpotDataDao;
+
+public class TemperatureOperation extends BaseDb {
+    private final String TAG = this.getClass().getSimpleName();
+    private Context context;
+
+    public TemperatureOperation(Context context) {
+        dao = getDaoSession(context).getCFT308DataDao();
+        this.context = context;
+    }
+
+
+    public List<OxSpotData> queryBySyncState(String userId) {
+        return dao.queryBuilder().where(CFT308DataDao.Properties.UserId.eq(userId)).orderAsc(CFT308DataDao.Properties.MeasureTime).build().list();
+    }
+
+    /**
+     * 通过日期查找列表
+     *
+     * @param dateString 日期值
+     * @param userId     用户id
+     * @return
+     */
+    public List<CFT308Data> queryByDate(String dateString, String userId) {
+        return dao.queryBuilder().where(CFT308DataDao.Properties.MeasureTime.like("%" + dateString + "%"), CFT308DataDao.Properties.UserId.eq(userId)).orderDesc(CFT308DataDao.Properties.MeasureTime).build().list();
+    }
+
+    public CFT308Data queryByNow(String userId) {
+        List<CFT308Data> list = dao.queryBuilder().where(CFT308DataDao.Properties.UserId.eq(userId)).build().list();
+        if (list.isEmpty()) {
+            return null;
+        }
+        return list.get(list.size() - 1);
+
+    }
+//    public OxSpotData queryByStart(String userId) {
+//        List<OxSpotData> list = dao.queryBuilder().where(OxSpotDataDao.Properties.UserId.eq(userId)).orderAsc(OxSpotDataDao.Properties.MeasureDateTime).build().list();
+//        if (list.isEmpty()) {
+//            return null;
+//        }
+//        return list.get(0);
+//
+//    }
+
+    /**
+     * 查询历史记录（天）
+     *
+     * @param userId    用户id
+     * @param startTime 开始日期 （yyyy-MM-dd HH:mm:ss）
+     * @param endTime   结束日期 （yyyy-MM-dd HH:mm:ss）
+     * @return
+     */
+    public List<OxSpotData> queryToDay(String userId, String startTime, String endTime) {
+        String sql = "WHERE MEASURE_DATE_TIME BETWEEN\""
+                + startTime
+                + "\" AND\""
+                + endTime
+                + "\" AND USER_ID= "
+                + userId
+                + " GROUP BY substr(MEASURE_DATE_TIME,1,18) "
+                + "ORDER BY MEASURE_DATE_TIME DESC";
+        List<OxSpotData> oxSpotDataList = dao.queryRaw(sql);
+        if (oxSpotDataList == null || oxSpotDataList.isEmpty()) {
+            return null;
+        }
+        return oxSpotDataList;
+    }
+
+    public List<CFT308Data> queryAVGData(String userId) {
+        List<CFT308Data> list = new ArrayList<>();
+        String sql = "SELECT " +
+                "UUID," +
+                "substr(MEASURE_TIME,1,11) || case 2-length(substr(MEASURE_TIME,12,2)/3*3) when 1 then '0' else '' end || (substr(MEASURE_TIME,12,2)/3*3) || ':00:00' MEASURE_TIME," +
+//                "ROUND(avg(convert(int,CFT308_DATA.TEMP)),1) TEMP" +
+                "ROUND(avg(CAST(CFT308_DATA.TEMP as float)),1) TEMP" +
+                " FROM " + "CFT308_DATA" +
+                " WHERE USER_ID = " + userId +
+                " GROUP BY substr(MEASURE_TIME,1,11) || case 2-length(substr(MEASURE_TIME,12,2)/3*3) when 1 then '0' else '' end || (substr(MEASURE_TIME,12,2)/3*3) || ':00:00'\n" +
+                " ORDER BY MEASURE_TIME ASC";
+
+        Cursor c = dao.getDatabase().rawQuery(sql, null);
+        try {
+            if (c.moveToFirst()) {
+
+                do {
+                    CFT308Data cft308Data = new CFT308Data();
+                    cft308Data.setTemp(c.getString(c.getColumnIndex("TEMP")));
+                    cft308Data.setMeasureTime(c.getString(c.getColumnIndex("MEASURE_TIME")));
+                    list.add(cft308Data);
+                } while (c.moveToNext());
+            }
+        } finally {
+            c.close();
+        }
+        return list;
+
+    }
+
+    public List<CFT308Data> queryAVGDataByDay(String userId) {
+        List<CFT308Data> list = new ArrayList<>();
+        String sql = "SELECT " +
+                "UUID," +
+                "substr(MEASURE_TIME,1,11)|| '00:00:00' MEASURE_TIME," +
+                "ROUND(avg(CAST(CFT308_DATA.TEMP as float)),1) TEMP" +
+                " FROM " + "CFT308_DATA" +
+                " WHERE USER_ID = " + userId +
+                " GROUP BY substr(MEASURE_TIME,1,11)|| '00:00:00'" +
+                " ORDER BY MEASURE_TIME ASC";
+
+        Cursor c = dao.getDatabase().rawQuery(sql, null);
+        try {
+            if (c.moveToFirst()) {
+
+                do {
+                    CFT308Data cft308Data = new CFT308Data();
+                    cft308Data.setTemp(c.getString(c.getColumnIndex("TEMP")));
+                    cft308Data.setMeasureTime(c.getString(c.getColumnIndex("MEASURE_TIME")));
+                    list.add(cft308Data);
+                } while (c.moveToNext());
+            }
+        } finally {
+            c.close();
+        }
+        return list;
+
+    }
+
+    /**
+     * 查询历史记录（月）
+     *
+     * @param userId
+     * @param beginTime
+     * @param endTime
+     * @return
+     */
+    public List<OxSpotData> queryToMonth(String userId, String beginTime, String endTime) {
+        String sql = "WHERE MEASURE_DATE_TIME BETWEEN\""
+                + beginTime
+                + "\" AND\""
+                + endTime
+                + "\" AND USER_ID= "
+                + userId
+                + " GROUP BY substr(MEASURE_DATE_TIME,1,18) "
+                + "ORDER BY MEASURE_DATE_TIME DESC";
+        List<OxSpotData> spotDataList = dao.queryRaw(sql);
+        if (spotDataList == null || spotDataList.isEmpty()) {
+            return null;
+        }
+        return spotDataList;
+    }
+
+
+}

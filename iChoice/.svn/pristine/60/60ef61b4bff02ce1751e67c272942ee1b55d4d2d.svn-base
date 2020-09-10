@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#04b9d4</color>
+    <color name="color_ox_result">#34d5cf</color>
+    <color name="colorAccent">#04b9d4</color>
+    <color name="color_ffffff">#ffffff</color>
+    <color name="color_000000">#000000</color>
+    <color name="color_b5b5b6">#828282</color>
+    <color name="color_b5b5b5">#b5b5b5</color>
+    <color name="color_fbfbfd">#fbfbfd</color>
+    <color name="color_eeeeee">#eeeeee</color>
+    <color name="color_36c7dd">#36c7dd</color>
+    <color name="color_34d5cf">#34d5cf</color>
+    <color name="color_81dce9">#81dce9</color>
+    <color name="color_1396aa">#1396aa</color>
+    <color name="color_04d9b4">#04B9D4</color>
+    <color name="color_414141">#ACA8A8</color>
+    <color name="color_c8c7cc">#c8c7cc</color>
+    <color name="color_929292">#929292</color>
+    <color name="main_tab_driver">#bfbfbf</color>
+    <color name="progressBar">#0099FF</color>
+    <color name="red_normal">#e60012</color>
+    <color name="red_pressed">#FF6666</color>
+    <color name="red_e86060">#e86060</color>
+    <color name="red_60e86060">#60e86060</color>
+    <color name="red1">#ee86a1</color>
+    <color name="blue_8c9eff">#8c9eff</color>
+    <color name="blue_608c9eff">#648c9eff</color>
+    <color name="blue_098bfa">#098bfa</color>
+    <color name="red2">#60ee86a1</color>
+    <color name="cirle_gray">#E9E9E9</color>
+    <color name="text1">#595757</color>
+    <color name="text_221815">#221815</color>
+    <color name="text_temp">#727171</color>
+    <color name="text_temp_no_binding">#7ff6c2d0</color>
+    <color name="text2">#8e8e93</color>
+    <color name="text3">#a5a5a5</color>
+    <color name="top_blue">#36c7dd</color>
+    <color name="orange">#FE8523</color>
+    <color name="black" >#020202</color>
+    <color name="transparency">#00000000</color>
+    <color name="violet">#9D80FF</color>
+    <color name="violet_pressed">#D3D1F8</color>
+    <color name="temp_green">#66FFCC</color>
+    <color name="colorPrimary1">#3F51B5</color>
+    <color name="colorPrimaryDark">#303F9F</color>
+    <color name="colorAccent1">#FF4081</color>
+    <color name="bottom_menu_btn_bg_common_color">#FFFFFF</color>
+    <color name="bottom_menu_btn_bg_press_color">#EEEEEE</color>
+    <color name="bottom_menu_btn_text_commom_color">#5B729A</color>
+    <color name="bottom_menu_btn_text_press_colot">#3F51B5</color>
+    <color name="bottom_menu_btn_text_stress_color">#FF0000</color>
+    <color name="bottom_menu_layout_color">#00000000</color>
+    <color name="bottom_hint">#8f8f8f</color>
+
+    <color name="pulse_oximeter_blue">#6BD2CE</color>
+
+
+    <!--    心电-->
+    <color name="list_divider_color">#d3d2d2</color>
+    <color name="list_item_font_color">#000</color>
+    <color name="list_item_background_pressed">#e4e4e4</color>
+    <color name="ecg_bg_line_red">#70FF0000</color>
+    <color name="ecg_data_line">#FF000000</color>
+    <color name="ecg_scale">#FF000000</color>
+
+    <color name="back_end">#FFC7C7C7</color>
+    <color name="back_start">#FFDCDCDC</color>
+
+    <color name="app_bar_title_color">#FF00aaee</color>
+    <color name="app_back">#fd904d</color>
+</resources>

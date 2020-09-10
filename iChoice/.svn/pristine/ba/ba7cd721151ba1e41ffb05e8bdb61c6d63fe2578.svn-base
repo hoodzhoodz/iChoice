@@ -1,0 +1,108 @@
+package com.choicemmed.ichoice.healthcheck.activity.wristpulse;
+
+import android.os.Bundle;
+import android.view.View;
+
+import com.choicemmed.ichoice.R;
+import com.choicemmed.ichoice.framework.application.App;
+import com.choicemmed.ichoice.framework.base.BaseActivty;
+import com.choicemmed.ichoice.framework.utils.ActivityUtils;
+import com.choicemmed.ichoice.framework.widget.MyCenterPopupView;
+import com.choicemmed.ichoice.healthcheck.db.DeviceDisplayOperation;
+import com.choicemmed.ichoice.healthcheck.db.DeviceOperation;
+import com.choicemmed.ichoice.healthcheck.db.W314B4Operation;
+import com.choicemmed.ichoice.healthcheck.db.W628Operation;
+import com.choicemmed.ichoice.framework.utils.DevicesType;
+import com.choicemmed.ichoice.initalization.activity.MainActivity;
+import com.lxj.xpopup.XPopup;
+
+import java.util.List;
+
+import butterknife.OnClick;
+import pro.choicemmed.datalib.DeviceDisplay;
+import pro.choicemmed.datalib.DeviceInfo;
+
+/**
+*Created by
+ * @author Jiangnan
+ * @Date 2020/1/20.
+*/
+public class DeviceSettingWpoActivity extends BaseActivty {
+    String deviceType;
+
+    @Override
+    protected int contentViewID() {
+        return R.layout.activity_device_setting_wpo;
+    }
+
+    @Override
+    protected void initialize() {
+        setTopTitle(getResources().getString(R.string.settings), true);
+
+        Bundle bundle = getIntent().getExtras();
+        deviceType = bundle.getString("DeviceType");
+        setLeftBtnFinish();
+//        switch (deviceType){
+//            case "W314":
+//                setLeftBtnToActivity(ResultWpoW314Activity.class);
+//                break;
+//            case "W628":
+//                setLeftBtnToActivity(ResultWpoW628Activity.class);
+//                break;
+//                default:
+//        }
+//        ActivityUtils.addActivity(this);
+    }
+    @OnClick({R.id.delete_device_wpo})
+    public void onClick(View view){
+        switch (view.getId()){
+            case R.id.delete_device_wpo:
+                MyCenterPopupView centerPopupView = new MyCenterPopupView(this);
+                XPopup.get(this).asCustom(centerPopupView).show();
+                centerPopupView.setDoublePopup("", getString(R.string.tip_delete)
+                        , getResources().getString(R.string.no)
+                        , getResources().getString(R.string.yes), new MyCenterPopupView.PositiveClickListener() {
+                            @Override
+                            public void onPositiveClick() {
+
+                            }
+                        }, new MyCenterPopupView.NegativeClickListener() {
+                            @Override
+                            public void onNegativeClick() {
+                                deleteDevice();
+                                ActivityUtils.removeAll();
+                                startActivity(MainActivity.class);
+                            }
+                        });
+                break;
+                default:
+        }
+    }
+
+    private void deleteDevice() {
+        DeviceDisplayOperation deviceDisplayOperation = new DeviceDisplayOperation(this);
+        DeviceDisplay deviceDisplay = deviceDisplayOperation.queryByUserId(App.getAppData().userProfileInfo.getUserId());
+        deviceDisplay.setWristPluseOximeter(0);
+        deviceDisplayOperation.updateDeviceDisplay(deviceDisplay);
+
+        DeviceOperation deviceOperation = new DeviceOperation(this);
+        List<DeviceInfo> deviceInfos = deviceOperation.queryByDeviceType(App.getAppData().userProfileInfo.getUserId(), DevicesType.WristPluseOximeter);
+        for (DeviceInfo deviceInfo: deviceInfos){
+            deviceOperation.deleteDv(deviceInfo);
+        }
+
+        switch (deviceType){
+            case "W314":
+                W314B4Operation w314B4Operation = new W314B4Operation(this);
+                w314B4Operation.deletAll();
+                break;
+            case "W628":
+                W628Operation w628Operation = new W628Operation(this);
+                w628Operation.deletAll();
+                break;
+            default:
+        }
+
+    }
+
+}

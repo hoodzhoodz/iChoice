@@ -1,0 +1,31 @@
+package com.choicemmed.ichoice.healthcheck.custom;
+
+import com.github.mikephil.charting.formatter.ValueFormatter;
+
+import java.util.Calendar;
+
+/**
+ * @anthor by jiangnan
+ * @Date on 2020/1/21.
+ */
+public class TimeXFormatter extends ValueFormatter {
+    Calendar calendar;
+
+    public TimeXFormatter(Calendar calendar) {
+        this.calendar = calendar;
+    }
+
+    @Override
+    public String getFormattedValue(float value) {
+        int hour = calendar.get(Calendar.HOUR_OF_DAY);
+        int minute = (int)(calendar.get(Calendar.MINUTE)+ value*2);
+        int second = calendar.get(Calendar.SECOND);
+        if (minute >= 60){
+            hour++;
+            minute = minute % 60;
+        }
+        String dateString = String.format("%02d", hour) + ":" + String.format("%02d", minute)
+                + ":" + String.format("%02d", second);
+        return dateString;
+    }
+}

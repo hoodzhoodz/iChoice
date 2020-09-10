@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:paddingLeft="@dimen/dp_34"
+    android:paddingRight="@dimen/dp_34"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/gender_tip"
+        style="@style/style_tip"
+        android:layout_marginTop="@dimen/dp_75"
+        android:text="@string/what_name" />
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/dp_80">
+
+        <ImageView
+            android:id="@+id/img_firstname"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_marginRight="@dimen/dp_9"
+            android:src="@mipmap/ic_username" />
+
+        <android.support.design.widget.TextInputLayout
+            android:id="@+id/input_firstname"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_toRightOf="@+id/img_firstname">
+
+            <EditText
+                style="@style/style_register_et"
+                android:singleLine="true"
+                android:maxLength="20"
+                android:hint="@string/first_name" />
+        </android.support.design.widget.TextInputLayout>
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/dp_32">
+
+        <ImageView
+            android:id="@+id/img_familyname"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_marginRight="@dimen/dp_9"
+            android:src="@mipmap/ic_username" />
+
+        <android.support.design.widget.TextInputLayout
+            android:id="@+id/input_familyname"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_toRightOf="@+id/img_familyname">
+
+            <EditText
+                style="@style/style_register_et"
+                android:singleLine="true"
+                android:maxLength="20"
+                android:hint="@string/family_name" />
+        </android.support.design.widget.TextInputLayout>
+    </RelativeLayout>
+
+    <Button
+        android:id="@+id/btn_continue"
+        style="@style/style_button"
+        android:layout_marginTop="@dimen/dp_120"
+        android:background="@drawable/selector_btn_positive"
+        android:text="@string/btn_continue" />
+
+</LinearLayout>

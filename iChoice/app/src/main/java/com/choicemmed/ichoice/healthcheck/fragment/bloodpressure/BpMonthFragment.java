@@ -1,0 +1,474 @@
+package com.choicemmed.ichoice.healthcheck.fragment.bloodpressure;
+
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.graphics.Color;
+import android.os.Build;
+import android.os.Bundle;
+import android.support.annotation.RequiresApi;
+import android.util.Log;
+import android.view.MotionEvent;
+import android.view.View;
+import android.widget.ImageView;
+import android.widget.TextView;
+
+import com.choicemmed.common.DateUtils;
+import com.choicemmed.common.FormatUtils;
+import com.choicemmed.ichoice.R;
+import com.choicemmed.ichoice.framework.application.IchoiceApplication;
+import com.choicemmed.ichoice.framework.base.BaseFragment;
+import com.choicemmed.ichoice.healthcheck.activity.CalenderSelectActivity;
+import com.choicemmed.ichoice.healthcheck.custom.MouthFormatter;
+import com.choicemmed.ichoice.healthcheck.db.Cbp1k1Operation;
+import com.choicemmed.ichoice.healthcheck.entity.AvgData;
+import com.choicemmed.ichoice.framework.utils.DevicesType;
+import com.choicemmed.ichoice.healthreport.commend.AvgDataUtils;
+import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.XAxis;
+import com.github.mikephil.charting.components.YAxis;
+import com.github.mikephil.charting.data.Entry;
+import com.github.mikephil.charting.data.LineData;
+import com.github.mikephil.charting.data.LineDataSet;
+import com.github.mikephil.charting.highlight.Highlight;
+import com.github.mikephil.charting.listener.ChartTouchListener;
+import com.github.mikephil.charting.listener.OnChartGestureListener;
+import com.github.mikephil.charting.listener.OnChartValueSelectedListener;
+import com.prolificinteractive.materialcalendarview.CalendarDay;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import butterknife.BindView;
+import butterknife.OnClick;
+import pro.choicemmed.datalib.Cbp1k1Data;
+
+public class BpMonthFragment extends BaseFragment implements OnChartValueSelectedListener, OnChartGestureListener {
+
+    @BindView(R.id.month_year)
+    TextView tv_year;
+    @BindView(R.id.month_month)
+    TextView tv_month;
+
+    @BindView(R.id.month_left)
+    ImageView calendar_left;
+    @BindView(R.id.month_right)
+    ImageView calendar_right;
+    @BindView(R.id.bp_month_chart)
+    LineChart chart;
+
+    @BindView(R.id.time)
+    TextView times;
+    @BindView(R.id.sys)
+    TextView sys;
+    @BindView(R.id.dia)
+    TextView dia;
+    @BindView(R.id.pr)
+    TextView pr;
+    @BindView(R.id.sys_unit)
+    TextView sunit;
+    @BindView(R.id.dia_unit)
+    TextView dunit;
+
+    private Calendar calendar;
+    private static String beginDate = FormatUtils.getDateTimeString(new Date(), FormatUtils.template_DbDateTime);
+    private static String endDate;
+    private int month_size = 1;
+    Map<Integer,AvgData> avgDataMap = new HashMap<>();
+    List<AvgData> avgDataList = new ArrayList<>();
+    BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            try {
+                int year = intent.getIntExtra("year", CalendarDay.today().getYear());
+                int month = intent.getIntExtra("month",CalendarDay.today().getMonth());
+                int day = intent.getIntExtra("day",CalendarDay.today().getDay());
+                calendar.set(year,month,day);
+                setTextDate(calendar);
+                CalendarMoveChart(calendar);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    };
+
+    boolean isunit;
+    private Cbp1k1Operation cbp1k1Operation;
+    int systolicPressure, diastolicPressure, pulseRate;
+    BroadcastReceiver broadcastReceiver1 = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            try {
+                isunit = intent.getBooleanExtra("isunit",false);
+                initData();
+                setTexts();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    };
+
+    @Override
+    protected int contentViewID() {
+        return R.layout.fragment_month;
+    }
+
+    @Override
+    protected void initialize() {
+        calendar = Calendar.getInstance();
+        initReceiver();
+        initData();
+        initChart();
+        setTextDate(calendar);
+        setChartData();
+        CalendarMoveChart(calendar);
+        initItem();
+    }
+
+    private void initReceiver() {
+        IntentFilter intentFilter = new IntentFilter("CalenderSelect");
+        getActivity().registerReceiver(broadcastReceiver,intentFilter);
+        IntentFilter intentFilter1 = new IntentFilter("UnitSelect");
+        getActivity().registerReceiver(broadcastReceiver1,intentFilter1);
+    }
+
+    private void initItem() {
+        if (avgDataList.isEmpty()){
+            return;
+        }
+        AvgData avgData = avgDataList.get(avgDataList.size()-1);
+        systolicPressure = avgData.getSysAvg();
+        diastolicPressure = avgData.getDiaAvg();
+        pulseRate = avgData.getPrAvg();
+        setTexts();
+    }
+
+    private void setTexts() {
+        if (isunit){
+            sys.setText(systolicPressure +"");
+            dia.setText(diastolicPressure +"");
+            pr.setText(pulseRate +"");
+            setUnitText(R.string.mmhg);
+        }else {
+            int systolicKpa = (int)(systolicPressure*0.133);
+            int diastolicKpa = (int)(diastolicPressure*0.133);
+            sys.setText(systolicKpa +"");
+            dia.setText(diastolicKpa +"");
+            pr.setText(pulseRate +"");
+            setUnitText(R.string.kpa);
+        }
+    }
+
+    private void setUnitText(int resId){
+        String text = getActivity().getString(resId);
+        sunit.setText(text);
+        dunit.setText(text);
+    }
+
+
+
+
+    private void setChartData() {
+        List<Entry> SysEntries = new ArrayList<>();
+        List<Entry> DiaEntries = new ArrayList<>();
+
+        Calendar beginDateCalendar = DateUtils.strToCalendar(beginDate);
+        beginDateCalendar.set(beginDateCalendar.get(Calendar.YEAR),beginDateCalendar.get(Calendar.MONTH),1,0,0,0);
+        Log.d("month",FormatUtils.getDateTimeString(beginDateCalendar.getTime(), FormatUtils.template_DbDateTime));
+        for (int i = 0; i < month_size*5; i++){
+            int day = beginDateCalendar.get(Calendar.DAY_OF_WEEK);
+            beginDateCalendar.add(Calendar.DATE, day==Calendar.SUNDAY? 0 : -(day-Calendar.SUNDAY));
+            String beginTime = FormatUtils.getDateTimeString(beginDateCalendar.getTime(), FormatUtils.template_Date);
+            beginDateCalendar.add(Calendar.DATE,7);
+            String endTime =  FormatUtils.getDateTimeString(beginDateCalendar.getTime(), FormatUtils.template_Date);
+            Log.d("weekTime",i + "|" + beginTime + "|" + endTime);
+            List<Cbp1k1Data> cbp1k1DataList = cbp1k1Operation.queryToMonth(IchoiceApplication.getAppData().userProfileInfo.getUserId(), beginTime, endTime);
+            if (cbp1k1DataList  != null){
+                AvgData avgData= AvgDataUtils.getavgData(cbp1k1DataList);
+                avgDataMap.put(i,avgData);
+                avgDataList.add(avgData);
+                SysEntries.add(new Entry(i,avgData.getSysAvg()));
+                DiaEntries.add(new Entry(i,avgData.getDiaAvg()));
+            }
+            beginDateCalendar.add(Calendar.DATE,1);
+        }
+        if (!avgDataList.isEmpty()){
+            SysEntries.add(new Entry( month_size*5+1,avgDataList.get(avgDataList.size()-1).getSysAvg()));
+            DiaEntries.add(new Entry( month_size*5+1,avgDataList.get(avgDataList.size()-1).getDiaAvg()));
+        }
+
+
+        LineDataSet sysSet,diaSet;
+        if (chart.getData() != null &&
+                chart.getData().getDataSetCount() > 0) {
+            sysSet = (LineDataSet) chart.getData().getDataSetByIndex(0);
+            diaSet = (LineDataSet) chart.getData().getDataSetByIndex(1);
+            sysSet.setValues(SysEntries);
+            diaSet.setValues(DiaEntries);
+            chart.getData().notifyDataChanged();
+            chart.notifyDataSetChanged();
+
+        }else {
+
+            sysSet = new LineDataSet(SysEntries,"SYS");
+            sysSet.setDrawCircleHole(false);
+            sysSet.setColor(Color.rgb(255,128,0));
+            sysSet.setCircleColor(Color.rgb(255,128,0));
+            sysSet.setCircleSize(5f);
+            sysSet.setLineWidth(3f);
+
+            diaSet = new LineDataSet(DiaEntries,"DIA");
+            diaSet.setColor(Color.rgb(65,105,225));
+            diaSet.setCircleColor(Color.rgb(65,105,225));
+            diaSet.setDrawCircleHole(false);
+            diaSet.setLineWidth(3f);
+            diaSet.setCircleSize(5f);
+
+            LineData data = new LineData(sysSet, diaSet);
+            chart.setData(data);
+
+        }
+        chart.invalidate();
+
+
+    }
+
+    private void setTextDate(Calendar calendar) {
+        tv_year.setText(calendar.get(Calendar.YEAR) + "");
+        tv_month.setText(calendar.get(Calendar.MONTH) + 1 + "");
+        changeArrowImage(calendar);
+    }
+
+    private void initChart() {
+        chart.setBackgroundColor(Color.WHITE);
+        chart.setDrawGridBackground(true);
+        chart.setDrawBorders(false);
+        chart.setGridBackgroundColor(Color.WHITE);
+        chart.getDescription().setEnabled(false);
+        chart.setScaleEnabled(false);
+        chart.getAxisRight().setEnabled(false);
+
+        chart.setOnChartValueSelectedListener(this);
+        chart.setOnChartGestureListener(this);
+
+        XAxis xAxis = chart.getXAxis();
+        xAxis.setTextSize(12f);
+        xAxis.setAxisMinimum(0f);
+        xAxis.setAxisMaximum(getWeeksize(calendar));
+
+        xAxis.setValueFormatter(new MouthFormatter(getString(R.string.week)));
+        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+        chart.setVisibleXRange(0,4);
+        xAxis.setLabelCount(4);
+
+        YAxis leftAxis = chart.getAxisLeft();
+        leftAxis.setAxisMaximum(210);
+        leftAxis.setAxisMinimum(0);
+        leftAxis.setLabelCount(8, true);
+        YAxis rightAxis = chart.getAxisRight();
+        rightAxis.setAxisMaximum(210);
+        rightAxis.setAxisMinimum(0);
+        rightAxis.setLabelCount(8, true);
+
+
+    }
+
+    private void initData() {
+        isunit = IchoiceApplication.getAppData().userProfileInfo.getIsUnit();
+        cbp1k1Operation = new Cbp1k1Operation(getContext());
+        List<Cbp1k1Data> cbp1k1DataAll = cbp1k1Operation.queryBySyncState(IchoiceApplication.getAppData().userProfileInfo.getUserId());
+        if (cbp1k1DataAll.isEmpty()){
+           return;
+        }
+        beginDate = cbp1k1DataAll.get(0).getMeasureDateTime();
+        Cbp1k1Data newCbp1k1Data = cbp1k1DataAll.get(cbp1k1DataAll.size()-1);
+        endDate = newCbp1k1Data.getMeasureDateTime();
+        Calendar timeCalendar= DateUtils.strToCalendar(endDate);
+        int day = timeCalendar.get(Calendar.DAY_OF_WEEK);
+        timeCalendar.add(Calendar.DATE, day==Calendar.SUNDAY? 0 : -(day-Calendar.SUNDAY));
+        String startTimes = timeCalendar.get(Calendar.DATE)+"-";
+        timeCalendar.add(Calendar.DATE,7);
+        String selectTimes = startTimes + timeCalendar.get(Calendar.DATE);
+        times.setText(selectTimes);
+        Calendar beginCalendar= DateUtils.strToCalendar(beginDate);
+        month_size =  DateUtils.differentMonthCalendar(beginCalendar,Calendar.getInstance());
+    }
+
+
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    @OnClick({R.id.month_right,R.id.month_left,R.id.month_select})
+    public void onClick(View view) {
+        switch (view.getId()){
+            case R.id.month_left:
+                Calendar beginCalendar= DateUtils.strToCalendar(beginDate);
+                if (isMonth(calendar,beginCalendar) || calendar.before(beginCalendar)){
+                    return;
+                }
+                calendar.add(Calendar.MONTH, -1);
+                setTextDate(calendar);
+                CalendarMoveChart(calendar);
+                break;
+
+            case R.id.month_right:
+                if (isMonth(calendar,Calendar.getInstance()) || calendar.after(Calendar.getInstance())){
+                    return;
+                }
+                calendar.add(Calendar.MONTH, 1);
+                setTextDate(calendar);
+                CalendarMoveChart(calendar);
+                break;
+
+            case R.id.month_select:
+                Bundle bundle = new Bundle();
+                bundle.putInt("type", DevicesType.BloodPressure);
+                startActivity(CalenderSelectActivity.class, bundle);
+                getActivity().overridePendingTransition(R.anim.bottom_in,R.anim.bottom_silent);
+                break;
+            default:
+        }
+    }
+
+    private void CalendarMoveChart(Calendar endCalendar) {
+        Calendar beginCalendar= DateUtils.strToCalendar(beginDate);
+        calendar.set(calendar.get(Calendar.YEAR),calendar.get(Calendar.MONTH)+1,1);
+        calendar.add(Calendar.DATE,-1);
+        int weeksize =DateUtils.differentWeekCalendar(beginCalendar,calendar);
+        chart.moveViewToX(weeksize);
+    }
+
+    private int getWeeksize(Calendar calendar) {
+        Calendar beginCalendar= DateUtils.strToCalendar(beginDate);
+        beginCalendar.set(beginCalendar.get(Calendar.YEAR),beginCalendar.get(Calendar.MONTH),1);
+        calendar.set(calendar.get(Calendar.YEAR),calendar.get(Calendar.MONTH)+1,1);
+        calendar.add(Calendar.DATE,-1);
+        return DateUtils.differentWeekCalendar(beginCalendar,calendar);
+    }
+
+
+    public boolean isMonth(Calendar c ,Calendar calendar1){
+        int year = calendar1.get(Calendar.YEAR);
+        int month = calendar1.get(Calendar.MONTH);
+        if (c.get(Calendar.YEAR) == year && c.get(Calendar.MONTH) == month){
+            return true;
+        }
+        return false;
+    }
+
+    public void changeArrowImage(Calendar calendar){
+        Calendar beginCalendar= DateUtils.strToCalendar(beginDate);
+        if (isMonth(Calendar.getInstance(),beginCalendar)){
+            calendar_left.setImageResource(R.mipmap.left_gay);
+            calendar_right.setImageResource(R.mipmap.right_gay);
+            return;
+        }
+        if (isMonth(calendar,beginCalendar)){
+            calendar_left.setImageResource(R.mipmap.left_gay);
+            calendar_right.setImageResource(R.mipmap.arrow_right);
+        }
+        if ( calendar.after(beginCalendar) && calendar.before(Calendar.getInstance()) ){
+            calendar_left.setImageResource(R.mipmap.calendar_left);
+            calendar_right.setImageResource(R.mipmap.arrow_right);
+        }
+        if (isMonth(calendar,Calendar.getInstance())){
+            calendar_left.setImageResource(R.mipmap.calendar_left);
+            calendar_right.setImageResource(R.mipmap.right_gay);
+        }
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        getActivity().unregisterReceiver(broadcastReceiver);
+        getActivity().unregisterReceiver(broadcastReceiver1);
+    }
+
+    @Override
+    public void onChartGestureStart(MotionEvent me, ChartTouchListener.ChartGesture lastPerformedGesture) {
+
+    }
+
+    @Override
+    public void onChartGestureEnd(MotionEvent me, ChartTouchListener.ChartGesture lastPerformedGesture) {
+        onChartEvent();
+    }
+
+    @Override
+    public void onChartLongPressed(MotionEvent me) {
+
+    }
+
+    @Override
+    public void onChartDoubleTapped(MotionEvent me) {
+
+    }
+
+    @Override
+    public void onChartSingleTapped(MotionEvent me) {
+
+    }
+
+    @Override
+    public void onChartFling(MotionEvent me1, MotionEvent me2, float velocityX, float velocityY) {
+
+    }
+
+    @Override
+    public void onChartScale(MotionEvent me, float scaleX, float scaleY) {
+
+    }
+
+    @Override
+    public void onChartTranslate(MotionEvent me, float dX, float dY) {
+        onChartEvent();
+    }
+
+
+    private void onChartEvent() {
+        Calendar gestureCalendar= DateUtils.strToCalendar(beginDate);
+        float liftXIndex = chart.getLowestVisibleX();
+        float rightXIndex = chart.getHighestVisibleX();
+        Log.d("rightXIndex",liftXIndex+"");
+        int add = (int)(liftXIndex/4.285714);
+        gestureCalendar.add(Calendar.MONTH,add);
+        if (gestureCalendar.after(Calendar.getInstance())){
+            gestureCalendar = Calendar.getInstance();
+        }
+        setTextDate(gestureCalendar);
+    }
+
+
+    @Override
+    public void onValueSelected(Entry e, Highlight h) {
+        try {
+            float x =  e.getX();
+            Log.d("x",x+"");
+            AvgData avgData = avgDataMap.get((int)x);
+            systolicPressure = avgData.getSysAvg();
+            diastolicPressure = avgData.getDiaAvg();
+            pulseRate = avgData.getPrAvg();
+            setTexts();
+            Calendar beginDateCalendar = DateUtils.strToCalendar(beginDate);
+            beginDateCalendar.set(beginDateCalendar.get(Calendar.YEAR),beginDateCalendar.get(Calendar.MONTH),1,0,0,0);
+            beginDateCalendar.add(Calendar.DATE,(int)(x*7));
+            int day = beginDateCalendar.get(Calendar.DAY_OF_WEEK);
+            beginDateCalendar.add(Calendar.DATE, day==Calendar.SUNDAY? 0 : -(day-Calendar.SUNDAY));
+            String startTimes = beginDateCalendar.get(Calendar.DATE)+"-";
+            beginDateCalendar.add(Calendar.DATE,7);
+            String selectTimes = startTimes + beginDateCalendar.get(Calendar.DATE);
+            times.setText(selectTimes);
+            Log.d("onValueSelected",avgData.toString());
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    @Override
+    public void onNothingSelected() {
+
+    }
+}

@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/color_eeeeee"
+    tools:context=".healthcheck.fragment.pulseoximeter.OXSpotCheckFragment">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_margin="12dp"
+        android:gravity="start"
+        android:orientation="vertical">
+
+        <android.support.v7.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="157dp"
+
+            app:cardCornerRadius="10dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical">
+
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="21dp"
+                        android:text="10:00"
+                        android:textColor="@color/text_temp"
+                        android:textSize="11sp"
+                        android:id="@+id/time"
+                        android:layout_centerVertical="true" />
+
+                </RelativeLayout>
+
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="3">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="49dp"
+                        android:text="@string/ox_spo2"
+                        android:textColor="@color/text_temp"
+                        android:textSize="10sp"
+                        android:id="@+id/tv_s" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_toRightOf="@id/tv_s"
+                        android:text="@string/ox_sp02_unit"
+                        android:textColor="@color/text_temp"
+                        android:textSize="8sp"
+                        android:id="@+id/tv_spo2_uint"
+                        android:layout_alignBaseline="@id/tv_s" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_toRightOf="@id/tv_spo2_uint"
+                        android:text="98"
+                        android:textColor="@color/color_ox_result"
+                        android:textSize="36sp"
+                        android:layout_centerVertical="true" />
+
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="70"
+                        android:textColor="@color/color_ox_result"
+                        android:textSize="36sp"
+                        android:layout_centerVertical="true"
+                        android:id="@+id/tv_pr"
+                        android:layout_alignParentRight="true"
+                        android:layout_marginRight="60dp" />
+
+                    <TextView
+
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/ox_bpm"
+                        android:textColor="@color/text_temp"
+                        android:textSize="8sp"
+                        android:id="@+id/tv_pr_unit"
+
+                        android:layout_toLeftOf="@id/tv_pr" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_toLeftOf="@id/tv_pr_unit"
+                        android:text="@string/ox_pr"
+                        android:textColor="@color/text_temp"
+                        android:textSize="10sp"
+                        android:id="@+id/tv_p"
+                        android:layout_alignBaseline="@id/tv_pr_unit" />
+
+
+                </RelativeLayout>
+
+
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="3">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="49dp"
+                        android:text="@string/ox_pi"
+                        android:textColor="@color/text_temp"
+                        android:textSize="10sp"
+                        android:id="@+id/tv_pi" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_toRightOf="@id/tv_pi"
+                        android:text="@string/ox_sp02_unit"
+                        android:textColor="@color/text_temp"
+                        android:textSize="8sp"
+                        android:id="@+id/tv_pi_uint"
+                        android:layout_alignBaseline="@id/tv_pi" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_toRightOf="@id/tv_pi_uint"
+                        android:text="11.4"
+                        android:textColor="@color/color_ox_result"
+                        android:textSize="36sp"
+                        android:layout_centerVertical="true" />
+
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="20"
+                        android:textColor="@color/color_ox_result"
+                        android:textSize="36sp"
+                        android:layout_centerVertical="true"
+                        android:id="@+id/tv_rr"
+                        android:layout_alignParentRight="true"
+                        android:layout_marginRight="60dp" />
+
+                    <TextView
+
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/ox_bpm"
+                        android:textColor="@color/text_temp"
+                        android:textSize="8sp"
+                        android:id="@+id/tv_rr_unit"
+                        android:layout_toLeftOf="@id/tv_rr" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_toLeftOf="@id/tv_rr_unit"
+                        android:text="@string/ox_rr"
+                        android:textColor="@color/text_temp"
+                        android:textSize="10sp"
+                        android:id="@+id/tv_r"
+                        android:layout_alignBaseline="@id/tv_rr_unit" />
+
+                </RelativeLayout>
+
+
+            </LinearLayout>
+        </android.support.v7.widget.CardView>
+
+
+        <android.support.v7.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="@color/white"
+            app:cardCornerRadius="10dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/ox_spo2"
+                    android:layout_marginLeft="19dp" />
+
+                <com.github.mikephil.charting.charts.LineChart
+                    android:id="@+id/spo2_chart"
+                    android:layout_width="match_parent"
+                    android:layout_height="180dp" />
+            </LinearLayout>
+        </android.support.v7.widget.CardView>
+
+        <android.support.v7.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="@color/white"
+            app:cardCornerRadius="10dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/pr_bpm"
+                    android:layout_marginLeft="19dp" />
+
+                <com.github.mikephil.charting.charts.LineChart
+                    android:id="@+id/pluse_rate_chart"
+                    android:layout_width="match_parent"
+                    android:layout_height="180dp" />
+            </LinearLayout>
+        </android.support.v7.widget.CardView>
+
+        <android.support.v7.widget.CardView
+            android:id="@+id/RRCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="30dp"
+            android:background="@color/white"
+            android:visibility="visible"
+            app:cardCornerRadius="10dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/rr_bpm1"
+                    android:layout_marginLeft="19dp" />
+
+                <com.github.mikephil.charting.charts.LineChart
+                    android:id="@+id/rr_chart"
+                    android:layout_width="match_parent"
+                    android:layout_height="180dp" />
+            </LinearLayout>
+        </android.support.v7.widget.CardView>
+
+
+    </LinearLayout>
+
+</ScrollView>

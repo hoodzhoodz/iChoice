@@ -1,0 +1,22 @@
+package com.choicemmed.ichoice.healthcheck.fragment.pulseoximeter;
+
+import com.choicemmed.ichoice.R;
+import com.choicemmed.ichoice.framework.base.BaseFragment;
+
+/**
+ * @author gaofang
+ * @Date 修改于 2020-06-29
+ * 历史趋势图（周）
+ * TODO 血样数据 周显示
+ */
+public class OxWeekFragment extends BaseFragment {
+    @Override
+    protected int contentViewID() {
+        return R.layout.fragment_ox_spot_week_trend;
+    }
+
+    @Override
+    protected void initialize() {
+
+    }
+}

@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.v7.widget.CardView xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/temp_measure"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginLeft="12dp"
+    android:layout_marginTop="10dp"
+    android:layout_marginRight="12dp"
+    app:cardCornerRadius="10dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginBottom="10dp"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="24dp"
+            android:layout_margin="10dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+
+            <ImageView
+                android:id="@+id/imageView"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:src="@mipmap/tiwenji2" />
+
+            <TextView
+                android:id="@+id/textView18"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="5dp"
+                android:layout_weight="1"
+                android:text="@string/therometer"
+                android:textColor="@color/black"
+                android:gravity="center" />
+
+
+        </LinearLayout>
+
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="320dp"
+            android:orientation="horizontal">
+
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center_horizontal"
+                android:orientation="vertical">
+
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginTop="20dp">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="200dp"
+                        android:layout_centerInParent="true"
+                        android:orientation="horizontal">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_gravity="center_horizontal"
+                            android:orientation="vertical">
+
+                            <RelativeLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="0dp"
+                                android:layout_weight="0.5">
+
+
+                                <TextView
+                                    android:id="@+id/tv_current"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+
+                                    android:layout_alignParentBottom="true"
+                                    android:layout_centerHorizontal="true"
+                                    android:gravity="center"
+                                    android:text="@string/last_record"
+                                    android:textColor="@color/red1"
+                                    android:textSize="12sp" />
+
+
+                            </RelativeLayout>
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="0dp"
+                                android:layout_weight="2"
+                                android:gravity="center_horizontal">
+
+                                <RelativeLayout
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+
+                                    >
+
+
+                                    <TextView
+                                        android:id="@+id/temp_left"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text=""
+                                        android:textColor="@color/text_temp"
+                                        android:textSize="92sp"
+                                        />
+
+
+                                    <TextView
+                                        android:id="@+id/temp_right"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_alignBaseline="@id/temp_left"
+                                        android:layout_toRightOf="@id/temp_left"
+                                        android:gravity="center"
+                                        android:text=""
+                                        android:textColor="@color/text_temp"
+                                        android:textSize="64sp" />
+
+                                    <TextView
+                                        android:id="@+id/tv_unit"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_alignParentTop="true"
+                                        android:layout_marginLeft="@dimen/dp_20"
+                                        android:layout_toRightOf="@id/temp_left"
+                                        android:text=""
+                                        android:textColor="@color/red1"
+                                        android:textSize="19sp" />
+                                </RelativeLayout>
+                            </LinearLayout>
+
+                        </LinearLayout>
+
+
+                    </LinearLayout>
+
+
+                </RelativeLayout>
+
+                <com.choicemmed.ichoice.healthcheck.view.CircleProgress
+                    android:id="@+id/cp"
+                    android:layout_width="300dp"
+                    android:layout_height="300dp"
+                    android:layout_gravity="center"
+                    android:padding="20dp"></com.choicemmed.ichoice.healthcheck.view.CircleProgress>
+
+
+            </FrameLayout>
+
+            <!--            <LinearLayout-->
+            <!--                android:layout_width="match_parent"-->
+            <!--                android:layout_height="match_parent"-->
+            <!--                android:layout_gravity="center_horizontal"-->
+            <!--                android:orientation="vertical">-->
+
+            <!--                <RelativeLayout-->
+            <!--                    android:layout_width="match_parent"-->
+            <!--                    android:layout_height="0dp"-->
+            <!--                    android:layout_weight="0.5">-->
+
+
+            <!--                    <TextView-->
+            <!--                        android:id="@+id/tv_current"-->
+            <!--                        android:layout_width="wrap_content"-->
+            <!--                        android:layout_height="wrap_content"-->
+
+            <!--                        android:gravity="center"-->
+            <!--                        android:text="@string/last_record"-->
+            <!--                        android:textColor="@color/red1"-->
+            <!--                        android:textSize="12sp"-->
+            <!--                        android:layout_centerHorizontal="true"-->
+            <!--                        android:layout_alignParentBottom="true" />-->
+
+
+            <!--                </RelativeLayout>-->
+
+            <!--                <LinearLayout-->
+            <!--                    android:layout_width="match_parent"-->
+            <!--                    android:layout_height="0dp"-->
+            <!--                    android:layout_weight="2"-->
+            <!--                    android:gravity="center_horizontal">-->
+
+            <!--                    <RelativeLayout-->
+            <!--                        android:layout_width="wrap_content"-->
+            <!--                        android:layout_height="wrap_content"-->
+
+            <!--                        >-->
+
+
+            <!--                        <TextView-->
+            <!--                            android:id="@+id/temp_left"-->
+            <!--                            android:layout_width="wrap_content"-->
+            <!--                            android:layout_height="wrap_content"-->
+            <!--                            android:textColor="@color/red1"-->
+            <!--                            android:textSize="92sp"-->
+            <!--                            android:text=""-->
+
+            <!--                            />-->
+
+
+            <!--                        <TextView-->
+            <!--                            android:id="@+id/temp_right"-->
+            <!--                            android:layout_width="wrap_content"-->
+            <!--                            android:layout_height="wrap_content"-->
+            <!--                            android:gravity="center"-->
+            <!--                            android:textColor="@color/red1"-->
+            <!--                            android:textSize="64sp"-->
+            <!--                            android:text=""-->
+            <!--                            android:layout_toRightOf="@id/temp_left"-->
+            <!--                            android:layout_alignBaseline="@id/temp_left" />-->
+
+            <!--                        <TextView-->
+            <!--                            android:layout_width="wrap_content"-->
+            <!--                            android:layout_height="wrap_content"-->
+            <!--                            android:text="@string/temp_unit"-->
+            <!--                            android:textSize="21sp"-->
+            <!--                            android:textColor="@color/red1"-->
+            <!--                            android:id="@+id/tv_unit"-->
+            <!--                            android:layout_toRightOf="@id/temp_left"-->
+            <!--                            android:layout_alignParentTop="true"-->
+            <!--                            android:layout_marginLeft="@dimen/dp_20" />-->
+            <!--                    </RelativeLayout>-->
+            <!--                </LinearLayout>-->
+
+            <!--            </LinearLayout>-->
+
+
+        </LinearLayout>
+    </LinearLayout>
+
+</android.support.v7.widget.CardView>

@@ -1,0 +1,239 @@
+package com.choicemmed.ichoice.healthcheck.activity.bloodpressure;
+
+import android.Manifest;
+import android.annotation.SuppressLint;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothManager;
+import android.content.Context;
+import android.content.pm.PackageManager;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Handler;
+import android.support.annotation.NonNull;
+import android.support.v4.content.ContextCompat;
+import android.util.Log;
+
+import com.choicemmed.cbp1k1sdkblelibrary.base.DeviceType;
+import com.choicemmed.cbp1k1sdkblelibrary.cmd.callback.BP2941BindDeviceCallback;
+import com.choicemmed.cbp1k1sdkblelibrary.cmd.callback.BP2941ConnectDeviceCallback;
+import com.choicemmed.cbp1k1sdkblelibrary.cmd.invoker.BP2941Invoker;
+import com.choicemmed.cbp1k1sdkblelibrary.device.BP2941;
+import com.choicemmed.cbp1k1sdkblelibrary.utils.ErrorCode;
+import com.choicemmed.common.FormatUtils;
+import com.choicemmed.common.LogUtils;
+import com.choicemmed.common.UuidUtils;
+import com.choicemmed.ichoice.R;
+import com.choicemmed.ichoice.framework.application.IchoiceApplication;
+import com.choicemmed.ichoice.framework.base.BaseActivty;
+import com.choicemmed.ichoice.healthcheck.activity.FailureActivity;
+import com.choicemmed.ichoice.healthcheck.activity.SuccessActivity;
+import com.choicemmed.ichoice.framework.utils.DevicesType;
+import com.choicemmed.ichoice.healthcheck.presenter.SaveDeviceInfoPresenter;
+import com.choicemmed.ichoice.healthcheck.view.ISaveDeviceInfoView;
+
+import java.util.Date;
+
+import pro.choicemmed.datalib.DeviceDisplay;
+import pro.choicemmed.datalib.DeviceInfo;
+
+public class SearchDeviceCbp1k1Activity extends BaseActivty implements ISaveDeviceInfoView {
+    private static final String TAG ="SearchDeviceCbp1k1";
+    private static final int REQUEST_LOCATION_PERMISSION_CODE = 0x01;
+    private BP2941Invoker invoker;
+    private String address = "";
+
+    private String deviceMacAddress = "";
+    private String deviceName = "";
+    private int deviceType = 1;
+    private SaveDeviceInfoPresenter mPresenter;
+    private Handler timeHanlder;
+    @Override
+    protected int contentViewID() {
+        return R.layout.activity_search_device_cbp1k1;
+    }
+
+    @Override
+    protected void initialize() {
+        setTopTitle(getResources().getString(R.string.Blood_Pressure), true);
+        setLeftBtnFinish();
+        invoker = new BP2941Invoker(this);
+        mPresenter = new SaveDeviceInfoPresenter(this, this);
+        autoRequestPermission();
+
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        timeHanlder = new Handler();
+        timeHanlder.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                toFailureActivity();
+            }
+        },11000);
+    }
+
+    private void toFailureActivity() {
+        Bundle bundle = new Bundle();
+        bundle.putString(DevicesType.Device, DevicesType.DEVICE_CBP1K1);
+        startActivityFinish(FailureActivity.class, bundle);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode) {
+            case REQUEST_LOCATION_PERMISSION_CODE:
+                //申请权限成功连接设备
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    bindDevice();
+                }
+                break;
+            default:
+        }
+    }
+
+    /**
+     * 动态申请位置信息权限
+     */
+    private void autoRequestPermission() {
+
+        //sdk版本低于23无需申请位置信息权限
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            bindDevice();
+            return;
+        }
+        //判断是否有位置信息权限，有-不处理，无-申请
+        if (ContextCompat.checkSelfPermission(this
+                , Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_LOCATION_PERMISSION_CODE);
+            return;
+        }
+        bindDevice();
+    }
+
+
+
+    private void bindDevice() {
+        invoker.bindDevice(new BP2941BindDeviceCallback() {
+            @Override
+            public void onFoundDevice(DeviceType deviceType, BP2941 bp2941) {
+                Log.d(TAG, "onFoundDevice: 发现设备：" + bp2941.toString());
+                saveCbp1k1Device(bp2941);
+                Bundle bundle = new Bundle();
+                bundle.putString(DevicesType.Device, DevicesType.DEVICE_CBP1K1);
+                startActivityFinish(SuccessActivity.class, bundle);
+//                connectDevice();
+            }
+
+            @Override
+            public void onScanTimeout(DeviceType deviceType) {
+                Log.d(TAG, "onScanTimeout: 绑定超时！");
+                toFailureActivity();
+            }
+
+            @Override
+            public void onError(DeviceType deviceType, int errorMsg) {
+                Log.d(TAG, "onError: error:" + errorMsg);
+                toFailureActivity();
+            }
+        });
+
+    }
+
+    private void connectDevice() {
+        invoker.connectDevice(address, new BP2941ConnectDeviceCallback() {
+            @SuppressLint("LongLogTag")
+            @Override
+            public void onSuccess() {
+                Log.d(TAG, "onSuccess: ");
+
+            }
+
+            @Override
+            public void onMeasureResult(DeviceType deviceType, int systolicPressure, int diastolicPressure, int pulseRate) {
+                LogUtils.d(TAG, "高压：" + systolicPressure + " 低压：" + diastolicPressure + " 脉率：" + pulseRate);
+            }
+
+            @Override
+            public void onError(DeviceType deviceType, int errorMsg) {
+                Log.e(TAG, "MainActivity.onError." + errorMsg);
+                switch (errorMsg) {
+                    //未打开蓝牙
+                    case ErrorCode.ERROR_BLUETOOTH_NOT_OPEN:
+                         openBluetoothBle();
+                        Log.d(TAG, "onError: 请先开启蓝牙！");
+
+                        break;
+                    //连接超时
+                    case ErrorCode.ERROR_CONNECT_TIMEOUT:
+                        toFailureActivity();
+
+                        break;
+                        //下位机主动断开连接
+                    case ErrorCode.ERROR_BLE_DISCONNECT:
+
+                        break;
+//                        gatt异常
+                    case ErrorCode.ERROR_GATT_EXCEPTION:
+                        toFailureActivity();
+                        break;
+                    default:
+                }
+            }
+        });
+
+    }
+
+    private void openBluetoothBle() {
+        BluetoothManager bluetoothManager = (BluetoothManager) this.getSystemService(Context.BLUETOOTH_SERVICE);
+        BluetoothAdapter bluetoothAdapter = bluetoothManager.getAdapter();
+        if (bluetoothAdapter != null && !bluetoothAdapter.isEnabled()) {
+            LogUtils.d(TAG, "检测到蓝牙未打开：重新开启蓝牙！");
+            bluetoothAdapter.enable();//不弹对话框直接开启蓝牙
+        }
+    }
+
+    private void saveCbp1k1Device(BP2941 cbp1k1Device) {
+        deviceMacAddress = cbp1k1Device.getMacAddress();
+        deviceName = cbp1k1Device.getDeviceName();
+        deviceType = DevicesType.BloodPressure;
+        DeviceInfo deviceInfo = new DeviceInfo();
+        deviceInfo.setUserId(IchoiceApplication.getAppData().userProfileInfo.getUserId() + "");
+        deviceInfo.setCreateTime(FormatUtils.getDateTimeString(new Date(), FormatUtils.template_DbDateTime));
+        deviceInfo.setLastUpdateTime(FormatUtils.getDateTimeString(new Date(), FormatUtils.template_DbDateTime));
+        deviceInfo.setDeviceType(deviceType);
+        deviceInfo.setTypeName(getString(R.string.cbp1k1));
+        deviceInfo.setBluetoothId(deviceMacAddress);
+        deviceInfo.setDeviceName(deviceName);
+        mPresenter.callModelSaveDeviceInfo(deviceInfo);
+        LogUtils.d(TAG, "deviceInfo:" + deviceInfo.toString());
+    }
+
+    @Override
+    public void saveDeviceInfoFinish() {
+        DeviceDisplay deviceDisplay = new DeviceDisplay();
+        deviceDisplay.setUserId(IchoiceApplication.getAppData().userProfileInfo.getUserId());
+        deviceDisplay.setCreateTime(FormatUtils.getDateTimeString(new Date(), FormatUtils.template_DbDateTime));
+        deviceDisplay.setLastUpdateTime(FormatUtils.getDateTimeString(new Date(), FormatUtils.template_DbDateTime));
+        deviceDisplay.setID(UuidUtils.getUuid());
+        deviceDisplay.setBloodPressure(1);
+        mPresenter.callModelSaveBindDeviceInfo(deviceDisplay, DevicesType.BloodPressure);
+        IchoiceApplication.getAppData().deviceDisplay = deviceDisplay;
+    }
+
+    @Override
+    public void saveOrUpdateDeviceDisplayFinish() {
+        finish();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        invoker.stopScan();
+        if (timeHanlder != null){
+            timeHanlder.removeCallbacksAndMessages(null);
+        }
+    }
+}

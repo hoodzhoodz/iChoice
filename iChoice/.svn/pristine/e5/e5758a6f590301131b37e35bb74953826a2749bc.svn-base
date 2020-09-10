@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <android.support.v7.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="54dp"
+        app:cardCornerRadius="10dp"
+        android:background="@color/white">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:orientation="horizontal">
+
+            <RelativeLayout
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent">
+
+                <ImageView
+                    android:id="@+id/iv1"
+                    android:layout_width="25dp"
+                    android:layout_height="25dp"
+                    android:src="@mipmap/shijian1"
+                    android:layout_centerVertical="true"
+                    android:layout_marginLeft="30dp"></ImageView>
+
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="15:12:03"
+                    android:id="@+id/time"
+                    android:textSize="17sp"
+                    android:textColor="@color/text1"
+                    android:layout_centerVertical="true"
+                    android:layout_marginLeft="70dp"></TextView>
+
+
+            </RelativeLayout>
+
+            <TextView
+                android:layout_width="1dp"
+                android:layout_height="35dp"
+                android:background="@color/blue_8c9eff"
+                android:layout_centerInParent="true"
+                android:layout_centerVertical="true"
+                android:id="@+id/ll_red"></TextView>
+            <ImageView
+                android:layout_width="25dp"
+                android:layout_height="25dp"
+                android:src="@mipmap/cft308_wenduji1"
+                android:layout_centerVertical="true"
+                android:layout_toRightOf="@id/ll_red"
+                android:layout_marginLeft="30dp"
+                android:id="@+id/iv_wenduji"></ImageView>
+
+            <TextView
+                android:id="@+id/tv1"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:text="37"
+                android:layout_marginLeft="30dp"
+                android:textSize="31sp"
+                android:textColor="@color/text1"
+                android:layout_toRightOf="@id/iv_wenduji"
+                android:gravity="center"></TextView>
+
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=".8"
+                android:textSize="21sp"
+                android:textColor="@color/text1"
+                android:id="@+id/tv2"
+                android:layout_toRightOf="@id/tv1"
+                android:layout_alignBaseline="@id/tv1"></TextView>
+
+            <TextView
+                android:id="@+id/temp_unit"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_toRightOf="@id/tv1"
+                android:gravity="center"
+                android:text="@string/temp_unit"
+                android:textColor="@color/text1"
+                android:textSize="15sp"></TextView>
+
+
+        </RelativeLayout>
+
+
+    </android.support.v7.widget.CardView>
+
+    <RelativeLayout
+        android:layout_width="@dimen/dp_60"
+        android:layout_height="13dp"
+        android:gravity="center"
+        android:id="@+id/rl">
+
+        <TextView
+            android:layout_width="@dimen/dp_2"
+            android:layout_height="match_parent"
+            android:background="@color/white"
+            android:id="@+id/tv4"
+            android:layout_centerInParent="true"></TextView>
+
+    </RelativeLayout>
+
+</LinearLayout>

@@ -1,0 +1,15 @@
+package com.choice.c208sdkblelibrary.base;
+
+public interface GattListener {
+    void onError(DeviceType deviceType, int errorMsg);
+
+    void onDisconnected(DeviceType deviceType);
+
+    void onInitialized(DeviceType deviceType);
+
+    void onCmdResponse(DeviceType deviceType, byte[] data);
+
+    void onDataResponse(DeviceType deviceType, byte[] data);
+
+    void onBleConnectSuccess();
+}

@@ -1,0 +1,129 @@
+package com.choicemmed.ichoice.healthcheck.model;
+
+
+import android.annotation.SuppressLint;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGattCallback;
+import android.bluetooth.le.BluetoothLeScanner;
+import android.bluetooth.le.ScanCallback;
+import android.bluetooth.le.ScanResult;
+import android.content.Context;
+import android.os.Build;
+import android.os.Handler;
+import android.os.Message;
+import android.support.annotation.RequiresApi;
+import android.util.Log;
+
+import com.choicemmed.common.BleUtils;
+import com.choicemmed.common.LogUtils;
+import com.choicemmed.common.StringUtils;
+import com.choicemmed.ichoice.R;
+import com.choicemmed.wristpulselibrary.ble.W628Ble;
+import com.choicemmed.wristpulselibrary.utils.BleScanThreadUtils;
+import com.choicemmed.wristpulselibrary.utils.ByteUtils;
+import com.choicemmed.wristpulselibrary.utils.ErrorCode;
+
+import java.util.List;
+
+import static android.content.ContentValues.TAG;
+
+
+@SuppressLint("NewApi")
+public class BleConnectInvoker extends ScanCallback {
+    private static String TAG = "BleConnectInvoker";
+    private static final long SCAN_PERIOD = 20000;
+    public boolean foundDevice = false;
+    protected static final int MSG_STOP_SCAN = 0;
+    protected static final int MSG_CONNECT_TIMEOUT = 1;
+    private String deviceName;
+    private Context context;
+    private BleConnectListener bleConnectListener;
+    private BluetoothAdapter bluetoothAdapter;
+    private BluetoothLeScanner bluetoothLeScanner;
+
+    protected Handler bleHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case MSG_STOP_SCAN:
+                    stopLeScan();
+                    bleConnectListener.onError(context.getResources().getString(R.string.ble_connect_timeout));
+                    break;
+                default:
+                    break;
+            }
+        }
+    };
+
+    public BleConnectInvoker(BleConnectListener bleConnectListener, Context context, String device) {
+        this.deviceName = device;
+        this.context = context;
+        this.bleConnectListener = bleConnectListener;
+    }
+
+
+    @Override
+    public void onScanResult(int callbackType, ScanResult result) {
+        super.onScanResult(callbackType, result);
+        final BluetoothDevice device = result.getDevice();
+        BleScanThreadUtils.getInstance().execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    if (!StringUtils.isEmpty(device.getName())) {
+                        LogUtils.d(TAG, device.getName());
+                    }
+
+                    if (!StringUtils.isEmpty(device.getName()) && device.getName().equalsIgnoreCase(deviceName)) {
+
+                        synchronized (BleConnectInvoker.this) {
+                            if (foundDevice) {
+                                return;
+                            }
+                            foundDevice = true;
+                            bleConnectListener.onBindDeviceSuccess(device);
+                            stopLeScan();
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onBatchScanResults(List<ScanResult> results) {
+        super.onBatchScanResults(results);
+    }
+
+    @Override
+    public void onScanFailed(int errorCode) {
+        super.onScanFailed(errorCode);
+    }
+
+    public void bindDevice() {
+        BleUtils.TestBleResult bleResult = BleUtils.testBle(context);
+        if (!bleResult.isAvailable) {
+            bleConnectListener.onError(bleResult.errorMsg);
+        } else {
+            Message msg = bleHandler.obtainMessage();
+            msg.what = MSG_STOP_SCAN;
+            bleHandler.sendMessageDelayed(msg, SCAN_PERIOD);
+            foundDevice = false;
+            bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+            bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
+            bluetoothLeScanner.startScan(this);
+        }
+    }
+
+    public void stopLeScan() {
+        if (bluetoothLeScanner == null) {
+            return;
+        }
+        bluetoothLeScanner.stopScan(this);
+        bleHandler.removeMessages(MSG_STOP_SCAN);
+    }
+
+}

@@ -1,0 +1,102 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head lang="en">
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+
+    <title></title>
+
+    <link href="bootstrap.min.css?v=3.3.5" rel="stylesheet">
+    <style>
+        .askRow {
+            color: #ffa500;
+            font-size: 18px;
+            line-height: 1.5;
+            margin-bottom: 5px;
+        }
+
+        .answerRow, ul li {
+            color: #141414;
+            font-size: 16px;
+            line-height: 1.4;
+        }
+
+        .m-b20 { margin-bottom: 20px; }
+
+    </style>
+</head>
+
+<body>
+
+<div class="container col-sm-12 m-b20">
+    <h2 class="askRow">血压测量前我应该如何准备？</h2>
+    <div class="answerRow">在测量之前，冷静一下并放松15分钟。</div>
+    <h2 class="askRow">测量血压的最佳时间是？</h2>
+    <div class="answerRow">
+        <ul>
+            <li>
+                对于血压正常的人，每周两次即可，测量时间建议在早上6点至早上9点之间的固定时间。
+            </li>
+            <li>对于血压异常的人，建议一天2次，连续一周，同样的，测量时间建议在上午6点到上午9点，下午6点到晚上9点之间。</li>
+        </ul>
+
+    </div>
+    <h2 class="askRow">为什么在家里测的血压读数不同于医院医生帮忙测的血压读数？</h2>
+    <div class="answerRow">医院中的血压读数通常会比家里测的血压值高一些。因为在家里轻松的氛围中，自己测量时获得的读数较有时会比医院的测量值低20 mmHg（2.7
+        kPa）~30 mmHg（4.0 kPa）。<br/>
+        而在医院环境中，患者在医生面前紧张焦虑，测得的血压较高，这种情况下测量的血压值比平时高30 mmHg左右，但是在充分适应环境后，血压又变的正常，这种现象我们称为“白大褂高血压”。
+    </div>
+    <h2 class="askRow">连续进行2次血压测量，为什么读数不同？</h2>
+    <div class="answerRow">
+        <div>人体血压每时每刻都是不一样的，一个健康人在一天内会有15～30 mmHg的变动，高血压病人的波动则更大。血压随人的精神状态、时间、季节、体温等的变化而变化，具体表现为：
+        </div>
+
+        <ul>
+            <li>精神影响：生气、紧张、恐惧、害怕、兴奋及疼痛等可使收缩压升高，而舒张压没有变化；</li>
+            <li>运动影响：刚运动完，身体处于兴奋状态，血压、脉搏偏高；</li>
+            <li>体温影响：身体过冷或者过热；</li>
+            <li>药物影响：降压药药效发挥期间，血压会将至正常状态；</li>
+            <li>测量时说话影响：导致血压测量结果不精确；<br/>同时，测量的方法不准确也会影响测量结果的精确度；</li>
+            <li>绑带过松、过紧；</li>
+            <li>绑带尺寸不适合；</li>
+            <li>2次测量间隔时间较短；</li>
+            <li>测量时坐姿不正确；</li>
+            <li>设备公差问题（如压力表等，可能存在结果读取误差）；</li>
+
+        </ul>
+    </div>
+
+    <h2 class="askRow">为什么上臂式血压计和腕式血压计的测量值之间存在差异？</h2>
+    <div class="answerRow">
+        腕式血压计测量时，设备必须处于与心脏水平状态。如果将手臂平放在桌子上（例如当您就座时），则血压会被高估大约7-8 mmHg，因为与心脏水平存在差异（1.5cm等于1
+        mmHg）。<br/>
+        在心率异常和末梢循环障碍（年龄原因导致）的影响下，腕式血压计的测量可能会产生不正确的结果，特别是在老年人中。而上臂的动脉对这些影响因素不太敏感。
+        因此，建议偶尔对上臂进行测量以比较两者的差别。
+    </div>
+
+
+    <h2 class="askRow">
+        正常人的血压范围是多少？
+    </h2>
+    <div class="answerRow">
+        <ul>
+            <li>收缩压（高压）：90~140mmHg</li>
+            <li>舒张压（低压）：60~90 mmHg</li>
+
+        </ul>
+    </div>
+
+    <h2 class="askRow">相较于腕式血压计，上臂式血压计是否更准确？</h2>
+    <div class="answerRow">
+        设备的便利性是产品选择因素之一。有些人觉得腕式血压计轻巧便携，特别是在旅行时，可随时测量人体血压。而其他人可能更喜欢大按钮、大屏幕的结果显示，上臂式血压计更易于测量结果的读取。
+    </div>
+
+
+</div>
+
+
+</body>
+</html>

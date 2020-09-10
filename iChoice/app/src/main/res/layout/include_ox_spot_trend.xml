@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="0dp"
+    android:layout_weight="5"
+    android:scrollbars="none">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="250dp"
+            android:layout_marginLeft="@dimen/dp_10"
+            android:layout_marginTop="@dimen/dp_10"
+            android:layout_marginRight="@dimen/dp_10"
+            android:paddingBottom="@dimen/dp_10"
+            android:background="@drawable/bg_corner"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_chart_title_spo2"
+                style="@style/ox_chart_title"
+                android:text="@string/ox_spo2" />
+            <TextView
+                style="@style/ox_chart_unit"
+                android:text="@string/ox_percent" />
+
+            <com.github.mikephil.charting.charts.LineChart
+                android:id="@+id/ox_spo2_chart"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+               android:padding="@dimen/dp_6"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:layout_marginLeft="@dimen/dp_10"
+            android:layout_marginTop="@dimen/dp_10"
+            android:layout_marginRight="@dimen/dp_10"
+            android:paddingBottom="@dimen/dp_10"
+            android:orientation="vertical"
+            android:background="@drawable/bg_corner">
+            <TextView
+                style="@style/ox_chart_title"
+                android:text="@string/ox_pr" />
+            <TextView
+                style="@style/ox_chart_unit"
+                android:text="@string/ox_bpm" />
+
+            <com.github.mikephil.charting.charts.LineChart
+                android:id="@+id/ox_pr_chart"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_margin="@dimen/dp_2"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:layout_marginLeft="@dimen/dp_8"
+            android:layout_marginTop="@dimen/dp_10"
+            android:layout_marginRight="@dimen/dp_8"
+            android:paddingBottom="@dimen/dp_10"
+            android:orientation="vertical"
+            android:background="@drawable/bg_corner">
+            <TextView
+                style="@style/ox_chart_title"
+                android:text="@string/rr" />
+            <TextView
+                style="@style/ox_chart_unit"
+                android:text="@string/ox_bpm" />
+            <com.github.mikephil.charting.charts.LineChart
+                android:id="@+id/ox_rr_chart"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_margin="@dimen/dp_2"/>
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

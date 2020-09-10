@@ -1,0 +1,100 @@
+package com.choicemmed.ichoice.healthcheck.adapter;
+
+import android.content.Context;
+import android.support.annotation.NonNull;
+import android.support.v7.widget.RecyclerView;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+
+import com.choicemmed.ichoice.R;
+import com.choicemmed.ichoice.healthcheck.view.EcgView;
+
+import java.util.List;
+
+import pro.choicemmed.datalib.EcgData;
+
+import static com.choicemmed.ichoice.healthcheck.fragment.ecg.EcgMeasureFragment.uncompressA12bEcgData;
+import static com.choicemmed.ichoice.healthcheck.fragment.ecg.EcgMeasureFragment.uncompressP10bEcgData;
+
+public class EcgHistoryAdapter extends RecyclerView.Adapter<EcgHistoryAdapter.OXHistoryHolder> {
+
+    private Context mContext;
+    List<EcgData> ecgDataList;
+    LinearLayout item;
+    TextView tv_time;
+    TextView tv_heart_rate;
+    EcgView ecgView;
+
+    public ItemClickListener getListener() {
+        return listener;
+    }
+
+    public void setListener(ItemClickListener listener) {
+        this.listener = listener;
+    }
+
+    private ItemClickListener listener;
+
+    public EcgHistoryAdapter(Context context, List<EcgData> list) {
+        this.mContext = context;
+        this.ecgDataList = list;
+    }
+
+    @NonNull
+    @Override
+    public OXHistoryHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int i) {
+        View view = LayoutInflater.from(mContext).inflate(R.layout.item_ecg_data, viewGroup, false);
+        OXHistoryHolder oxHistoryHolder = new OXHistoryHolder(view);
+        return oxHistoryHolder;
+    }
+
+    @Override
+    public void onBindViewHolder(@NonNull OXHistoryHolder oxHistoryHolder, int i) {
+        if (oxHistoryHolder != null) {
+            EcgData ecgData = ecgDataList.get(i);
+            tv_time.setText(ecgData.getMeasureTime());
+            tv_heart_rate.setText(ecgData.getDecodeBpm() + "");
+            int[] ecg;
+            if (ecgData.getEcgTime().toLowerCase().startsWith("55aa61")) {
+                ecg = uncompressP10bEcgData(ecgData.getEcgData());
+            } else {
+                ecg = uncompressA12bEcgData(ecgData.getEcgData());
+            }
+            ecgView.redrawEcg(ecg);
+        }
+    }
+
+    @Override
+    public int getItemCount() {
+        return ecgDataList == null ? 0 : ecgDataList.size();
+    }
+
+    public class OXHistoryHolder extends RecyclerView.ViewHolder {
+        public OXHistoryHolder(@NonNull final View viewItem) {
+            super(viewItem);
+            tv_time = viewItem.findViewById(R.id.tv_time);
+            tv_heart_rate = viewItem.findViewById(R.id.tv_avg_hr1);
+            ecgView = viewItem.findViewById(R.id.ecg_chart);
+            item = itemView.findViewById(R.id.ll_ecg);
+            item.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (listener != null)
+                        listener.onItemViewClick(getPosition());
+                }
+            });
+        }
+    }
+
+    @Override
+    public int getItemViewType(int position) {
+        return position;
+    }
+
+    public interface ItemClickListener {
+        void onItemViewClick(int position);
+    }
+}

@@ -1,0 +1,308 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head lang="en">
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=0.5">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+
+    <title></title>
+
+    <link href="bootstrap.min.css?v=3.3.5" rel="stylesheet">
+    <style>
+        body {
+            background-color: #eee;font-size: 20px;
+        }
+        button{ outline: none;}
+        button.btn:focus{ outline: 0;}
+       
+        .wrapper {
+            overflow: hidden;
+            padding: 0;
+             min-width: 640px;
+        }
+
+        ul, li {
+            padding: 0;
+            margin: 0;
+            list-style: none;
+        }
+       
+
+        .m-b20 { margin-bottom: 20px; }
+
+        .ibox {
+            padding: 20px;
+            background-color: #fff;
+        }
+
+        .top {
+            background: #06bad4 url('topbg_zh.png') no-repeat center;
+            width: 100%;
+            height: 300px;
+            padding-top: 180px;
+        }
+
+        .bottonwapper { min-width: 640px;}
+
+        .btn {
+            /*width: 260px;*/
+            border-radius: 25px;
+            height: 50px;
+            font-size: 24px;
+            border: 2px solid #fff;
+            padding-left: 25px;
+            padding-right: 25px;
+            color: #fff0f5;
+            background: none;
+        }
+
+        .btn:hover,.btn:active, .btn.active {
+            background-color: rgba(255, 255, 255, 0.5);
+            color: #fff;
+        }
+
+
+        p { font: 300 20px/1.5 aria; }
+
+        .timelinewapper {
+            background-color: #fff;
+            padding: 10px;
+        }
+
+        .timelinewapper ul:before {
+            content: '';
+            z-index: 1;
+            position: absolute;
+            top: 0px;
+            left: 98px;
+            height: 100%;
+            width: 8px;
+            background: #bfbfbf;
+        }
+
+        .timelinewapper ul { position: relative; }
+
+        .timelinewapper ul li {
+            position: relative;
+            height: 150px;
+            margin-right: 50px;
+        }
+
+        .top-circle {
+            width: 200px;
+            height: 200px;
+            border: 5px solid #ccc;
+            border-radius: 50%;
+            background-color: #06bad4;
+            color: #fff;
+            font: 500 24px/200px aria;
+        }
+
+        .timelinewapper ul li label {
+            position: absolute;
+            top: 30px;
+            left: 56px;
+            z-index: 3;
+            display: inline-block;
+            width: 154px;
+            height: 91px;
+            line-height: 91px;
+            background: #fff url(circle.png) no-repeat center;
+            color: #06bad4;
+            padding-left: 26px;
+            font-size: 18px;
+        }
+
+        .timelinewapper ul li span {
+            position: absolute;
+            top: 44px;
+            left: 230px;
+            z-index: 3;
+            background-color: #06bad4;
+            color: #fff0f5;
+            border-radius: 30px;
+            padding: 10px 20px;
+          
+        }
+
+    </style>
+</head>
+
+<body>
+
+<div class="wrapper">
+    <div class="top m-b20">
+        <div class="bottonwapper text-center center-block">
+            <button class="btn active" id="btn1" style="margin-right: 50px;" onclick="showTab(1)">
+                关于超思
+            </button>
+            <button class="btn" id="btn2" onclick="showTab(2)">关于超思健康</button>
+
+        </div>
+    </div>
+    <!--第一个选项卡开始-->
+    <div id="Tab_AboutChoiceMMed">
+
+        <div class="m-b20 ibox">
+            <p>
+                北京超思电子技术股份有限公司(简称超思)，成立于1993年，是集研发、生产、销售为一体的医用及民用医疗器械高新技术企业。作为最大的医疗器械制造商之一，超思始终保持提供高质量和高品质的产品。二十多年来，超思已经建立了3大主要产品系列：血氧仪系列，基层医疗系列和家用健康系列产品，超思致力于向全球市场提供优质产品和服务。
+            </p>
+            <p>
+                展望未来，在“科技智造关怀”核心价值观的指引下，超思专注于医疗健康事业，为全球用户带来美好生活的方向不会变；坚持创新、科学管理的理念不会变；创造价值、服务社会的追求不会变。
+            </p>
+        </div>
+
+        <div class="timelinewapper ibox">
+            <div class="top-circle text-center">
+                里程碑
+            </div>
+            <ul>
+                <li>
+                    <label>2019</label> <span>
+                超思新加坡子公司成立
+                        </span>
+                </li>
+                <li>
+                    <label>2018</label> <span>
+                                                推出新一代专业血氧指夹系列
+                        </span>
+                </li>
+                <li>
+                    <label>2017</label> <span>
+                                                推出新产品系列-家用医疗护理系列产品
+                        </span>
+                </li>
+                <li>
+                    <label>2016</label> <span style="top: 0px; padding: 10px 20px;">
+                                                超思被天津红日药业集团收购，实现强强联合。<br/>推出了家用血压计产品
+                        </span>
+                </li>
+
+                <li><label>2015 </label> <span>超思德国子公司成立</span></li>
+                <li>
+                    <label>2014 </label> <span>
+                                                 超思加拿大子公司在英属哥伦比亚省注册并成立
+                        </span>
+                </li>
+                <li>
+                    <label>2013 </label> <span>
+                                                 超思印度子公司成立
+                        </span>
+                </li>
+                <li>
+                    <label>2012 </label> <span>
+                                                 完成第二代血氧仪技术升级
+                        </span>
+                </li>
+                <li><label>2011 </label> <span>超思美国子公司成立</span></li>
+                <li>
+                    <label>2010 </label> <span>
+                                                 远程医疗、个人心电仪和睡眠产品进入家庭保健领域
+                        </span>
+                </li>
+                <li>
+                    <label>2008 </label> <span>
+                                                 推出了睡眠产品和急救产品，且产品进入了医院和家庭护理领域
+                        </span>
+                </li>
+                <li>
+                    <label>2005 </label> <span style="top: 30px; padding: 10px 20px;">
+                                                 推出了生命体征监测产品<br/>
+                                                 推出了便携式手持心电仪和腕式血压血氧仪
+                        </span>
+                </li>
+                <li>
+                    <label>2004 </label> <span>
+                                                 推出了首个带有波形显示和多方向显示功能的指夹式脉搏血氧仪
+                        </span>
+                </li>
+                <li>
+                    <label>2003 </label> <span
+                        style="top: 30px; padding: 10px 20px; font-size: 18px; line-height: 1.2;">
+                                                 推出了数码遥测多参数监控系统<br/>
+                                                 推出了第二代无线数码多参数全时通监护系统和台式、手持式血氧仪
+                        </span>
+                </li>
+                <li>
+                    <label>2001 </label> <span>
+                                                 推出了全时通无线中央监护系统
+                        </span>
+                </li>
+                <li>
+                    <label>2000 </label> <span>
+                                                 推出了便携式多参数监护仪，实现了监护仪的移动化
+                        </span>
+                </li>
+                <li>
+                    <label>1998 </label> <span style="top: 30px; padding: 10px 20px;">
+                                                 推出了MMED6000DP系列多参数监护仪，产品具有ECG、RESP、SpO2、NIBP、TEMP、PR和HR等参数
+                        </span>
+                </li>
+                <li>
+                    <label>1993 </label> <span>
+                                                 超思公司成立
+                        </span>
+                </li>
+
+
+            </ul>
+        </div>
+
+    </div>
+    <!--第一个选项卡结束-->
+
+    <!--第一个选项卡开始-->
+    <div id="Tab_AboutChoice" style="display: none;">
+        <div class="ibox">
+            <p style="padding-bottom: 600px;">
+                超思健康是一款为用户进行健康数据管理的应用程序，需配合超思的蓝牙产品进行使用。通过使用超思健康
+                APP，您可以随时随地检测并记录您的健康数据，比如心率，血压，血氧，体温等，并在就医时为医生诊断提供参考
+
+            </p>
+        </div>
+    </div>
+    <!--第一个选项卡结束-->
+
+</div>
+
+<script type="text/javascript">
+    function showTab(num) {
+        if (num == 1) {
+            document.getElementById("Tab_AboutChoiceMMed").style.display = "block";
+            document.getElementById("Tab_AboutChoice").style.display = "none";
+            addClass(document.getElementById("btn1"), "active");
+            removeClass(document.getElementById("btn2"), "active");
+        } else {
+
+            document.getElementById("Tab_AboutChoiceMMed").style.display = "none";
+            document.getElementById("Tab_AboutChoice").style.display = "block";
+            addClass(document.getElementById("btn2"), "active");
+            removeClass(document.getElementById("btn1"), "active");
+             window.webkit.messageHandlers.showMessage1.postMessage(null);
+        }
+    }
+
+
+    function hasClass(ele, cls) {
+        var reg = new RegExp('(\\s|^)' + cls + '(\\s|$)', 'ig');
+            var match =reg.test( ele.className );
+            return match;
+        }
+
+    function addClass(ele, cls) {
+        if (!this.hasClass(ele, cls))
+            ele.className += " " + cls;
+    }
+
+    function removeClass(ele, cls) {
+        if (hasClass(ele, cls)) {
+            var reg = new RegExp('(\\s|^)' + cls + '(\\s|$)','ig');
+            ele.className = ele.className.replace(reg, ' ');
+        }
+    }
+
+</script>
+</body>
+</html>

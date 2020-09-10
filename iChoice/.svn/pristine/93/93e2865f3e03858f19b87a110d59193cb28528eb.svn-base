@@ -1,0 +1,283 @@
+package com.choicemmed.ichoice.framework.utils;
+
+import android.util.Log;
+
+import com.choicemmed.common.DateUtils;
+import com.choicemmed.common.FormatUtils;
+import com.choicemmed.common.LogUtils;
+import com.choicemmed.common.UuidUtils;
+import com.choicemmed.ichoice.framework.application.App;
+import com.choicemmed.ichoice.healthcheck.db.W314B4Operation;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+
+import pro.choicemmed.datalib.W314B4Data;
+import pro.choicemmed.datalib.W628Data;
+
+/**
+ * @author Created by Jiang nan on 2020/1/17 10:41.
+ * @description
+ **/
+public class ParesUtils {
+    public static final String TAG = "ParesUtils";
+
+    public static List<W314B4Data> analysisTimeW314(byte[] bytesTime) {
+        int year, month, day, hour, minute, second;
+        String startTime = null;
+        String endTime = null;
+        String tag = "";
+        String vaild = "star" + "tend";
+        List<W314B4Data> listTime = new ArrayList<>();
+        for (int i = 0; i < bytesTime.length; i++) {
+            if ((bytesTime[i] & 0xff) == 0x55) {
+                //55 开机时间
+                year = (bytesTime[i + 2] & 0xff) + 2000;
+                month = bytesTime[i + 3] & 0xff;
+                day = bytesTime[i + 4] & 0xff;
+                hour = bytesTime[i + 5] & 0xff;
+                minute = bytesTime[i + 6] & 0xff;
+                second = bytesTime[i + 7] & 0xff;
+                startTime = String.format("%04d-%02d-%02d %02d:%02d:%02d", year, month, day, hour, minute, second);
+                LogUtils.d(TAG, "解析后的开机时间----->" + startTime);
+                i = i + 7;
+                tag = tag + "start";
+
+            } else if ((bytesTime[i] & 0xff) == 0xff) {
+                //ff 关机时间
+                year = (bytesTime[i + 2] & 0xff) + 2000;
+                month = bytesTime[i + 3] & 0xff;
+                day = bytesTime[i + 4] & 0xff;
+                hour = bytesTime[i + 5] & 0xff;
+                minute = bytesTime[i + 6] & 0xff;
+                second = bytesTime[i + 7] & 0xff;
+                endTime = String.format("%04d-%02d-%02d %02d:%02d:%02d", year, month, day, hour, minute, second);
+                LogUtils.d(TAG, "解析后的关机时间----->" + endTime);
+                i = i + 7;
+                tag = tag + "end";
+            }
+            if (vaild.equals(tag)) {
+                W314B4Data w314B4Data = new W314B4Data();
+                w314B4Data.setStartDate(startTime);
+                w314B4Data.setEndDate(endTime);
+                w314B4Data.setUuid(UuidUtils.getUuid());
+                w314B4Data.setUserId(App.getAppData().userProfileInfo.getUserId());
+                w314B4Data.setAccountKey(App.getAppData().user.getToken());
+                listTime.add(w314B4Data);
+                tag = "";
+            }
+
+        }
+        return listTime;
+    }
+
+
+    public static void paresDataW314(byte[] bytesData, W314B4Data recordTimeAll, List<W314B4Data> recordHistory) {
+        int j = 0;
+        boolean TIME_INCLUDE_DATA = false;
+        boolean HEAT_TIME = false;
+        String group = "";
+        StringBuffer series = new StringBuffer();
+        int count = 0;
+        int year, month, day, hour, minute, second;
+        String startDateString = recordTimeAll.getStartDate();
+        for (int i = 0; i < bytesData.length; i = i + 2) {
+            if ((bytesData[i] & 0xff) > 0x80) {
+                year = (bytesData[i + 2] & 0xff) + 2000;
+                month = (bytesData[i + 3] & 0xff);
+                day = (bytesData[i + 4] & 0xff);
+                hour = (bytesData[i + 5] & 0xff);
+                minute = (bytesData[i + 6] & 0xff);
+                second = (bytesData[i + 7] & 0xff);
+                String headTime = String.format("%04d-%02d-%02d %02d:%02d:%02d", year, month, day, hour, minute, second);
+                LogUtils.d(TAG, "paresData_解析后的头时间----->" + headTime);
+                Date startDate = FormatUtils.parseDate(recordTimeAll.getStartDate(), FormatUtils.sleep_DbDateTime);
+                Date endDate = FormatUtils.parseDate(recordTimeAll.getEndDate(), FormatUtils.sleep_DbDateTime);
+                Date headDate = FormatUtils.parseDate(headTime, FormatUtils.sleep_DbDateTime);
+
+                if (startDate != null && endDate != null && headDate != null) {
+                    if (headDate.compareTo(startDate) >= 0 && headDate.compareTo(endDate) < 0) {
+                        j = (int) (headDate.getTime() - startDate.getTime()) / (1000);
+                        series.setLength(0);
+                        HEAT_TIME = true;
+                        TIME_INCLUDE_DATA = true;
+                    } else {
+                        TIME_INCLUDE_DATA = false;
+                    }
+                }
+            }
+            if (TIME_INCLUDE_DATA) {
+                group = "," + j + ":" + (bytesData[i] & 0x7f) + "@" + (bytesData[i + 1] & 0xff);
+                series.append(group);
+                j++;
+                //大数据问题 查询超过2MB 光标报错
+                if (j >= 86400){
+                    W314B4Data w314B4Data = new W314B4Data();
+                    w314B4Data.setUuid(UuidUtils.getUuid());
+                    w314B4Data.setUserId(App.getAppData().userProfileInfo.getUserId());
+                    w314B4Data.setAccountKey(App.getAppData().user.getToken());
+                    Calendar beginCalendar = DateUtils.strToCalendar(startDateString);
+                    beginCalendar.add(Calendar.DATE, count);
+                    w314B4Data.setStartDate(FormatUtils.getDateTimeString(beginCalendar.getTime(), FormatUtils.sleep_DbDateTime));
+                    beginCalendar.add(Calendar.DATE, 1);
+                    w314B4Data.setEndDate(FormatUtils.getDateTimeString(beginCalendar.getTime(), FormatUtils.sleep_DbDateTime));
+                    series.delete(0,1);
+                    w314B4Data.setSeries(series.toString());
+                    recordHistory.add(w314B4Data);
+                    series.setLength(0);
+                    j = 0;
+                    count++;
+                }
+            }
+
+            if (HEAT_TIME) {
+                i = i + 6;
+                HEAT_TIME = false;
+            }
+        }
+        if (!"".equals(series)) {
+            recordTimeAll.setUuid(UuidUtils.getUuid());
+            series.delete(0, 1);
+            Calendar beginCalendar= DateUtils.strToCalendar(startDateString);
+            beginCalendar.add(Calendar.DATE, count);
+            recordTimeAll.setStartDate(FormatUtils.getDateTimeString(beginCalendar.getTime(), FormatUtils.sleep_DbDateTime));
+            recordTimeAll.setSeries(series.toString());
+            recordHistory.add(recordTimeAll);
+        }
+
+    }
+
+
+    public static List<W628Data> analysisTimeW628(byte[] bytesTime) {
+        String startTime = null;
+        String endTime = null;
+        String tag = "";
+        String vaild = "star" + "tend";
+        int year, month, day, hour, minute, second;
+        List<W628Data> listTime = new ArrayList<>();
+        for (int i = 0; i < bytesTime.length; i++) {
+            if ((bytesTime[i] & 0xff) == 0x55) {
+                year = (bytesTime[i + 2] & 0xff) + 2000;
+                month = bytesTime[i + 3] & 0xff;
+                day = bytesTime[i + 4] & 0xff;
+                hour = bytesTime[i + 5] & 0xff;
+                minute = bytesTime[i + 6] & 0xff;
+                second = bytesTime[i + 7] & 0xff;
+                startTime = String.format("%04d-%02d-%02d %02d:%02d:%02d", year, month, day, hour, minute, second);
+                LogUtils.d(TAG, "解析后的开机时间----->" + startTime);
+                i = i + 7;
+                tag = tag + "start";
+
+            } else if ((bytesTime[i] & 0xff) == 0xff) {
+                year = (bytesTime[i + 2] & 0xff) + 2000;
+                month = bytesTime[i + 3] & 0xff;
+                day = bytesTime[i + 4] & 0xff;
+                hour = bytesTime[i + 5] & 0xff;
+                minute = bytesTime[i + 6] & 0xff;
+                second = bytesTime[i + 7] & 0xff;
+                endTime = String.format("%04d-%02d-%02d %02d:%02d:%02d", year, month, day, hour, minute, second);
+                LogUtils.d(TAG, "解析后的关机时间----->" + endTime);
+                i = i + 7;
+                tag = tag + "end";
+            }
+            if (vaild.equals(tag)) {
+                W628Data w628Data = new W628Data();
+                w628Data.setStartDate(startTime);
+                w628Data.setEndDate(endTime);
+                w628Data.setUuid(UuidUtils.getUuid());
+                w628Data.setUserId(App.getAppData().userProfileInfo.getUserId());
+                w628Data.setAccountKey(App.getAppData().user.getToken());
+                listTime.add(w628Data);
+                tag = "";
+            }
+
+        }
+        return listTime;
+    }
+
+
+    public static void paresDataW628(byte[] bytesData, W628Data recordTimeAll, List<W628Data> recordHistory) {
+        int j = 0;
+        boolean TIME_INCLUDE_DATA = false;
+        boolean HEAT_TIME = false;
+        String group = "";
+        StringBuffer series = new StringBuffer();
+        String headTime;
+        String startDateString = recordTimeAll.getStartDate();
+        int count = 0;
+        int year, month, day, hour, minute, second;
+        Date startDate, endDate, headDate;
+        for (int i = 0; i < bytesData.length - 1; i = i + 3) {
+            if ((bytesData[i] & 0x80) > 0) {
+                year = (bytesData[i + 3] & 0xff) + 2000;
+                month = (bytesData[i + 4] & 0xff);
+                day = (bytesData[i + 5] & 0xff);
+                hour = (bytesData[i + 6] & 0xff);
+                minute = (bytesData[i + 7] & 0xff);
+                second = (bytesData[i + 8] & 0xff);
+                headTime = String.format("%04d-%02d-%02d %02d:%02d:%02d", year, month, day, hour, minute, second);
+
+                startDate = FormatUtils.parseDate(recordTimeAll.getStartDate(), FormatUtils.sleep_DbDateTime);
+                endDate = FormatUtils.parseDate(recordTimeAll.getEndDate(), FormatUtils.sleep_DbDateTime);
+                headDate = FormatUtils.parseDate(headTime, FormatUtils.sleep_DbDateTime);
+
+                if (startDate != null && endDate != null && headDate != null) {
+                    if (headDate.compareTo(startDate) >= 0 && headDate.compareTo(endDate) < 0) {
+                        j = (int) (headDate.getTime() - startDate.getTime()) / (1000);
+                        series.setLength(0);
+                        HEAT_TIME = true;
+                        TIME_INCLUDE_DATA = true;
+                    } else {
+                        TIME_INCLUDE_DATA = false;
+                    }
+                }
+            }
+            if (TIME_INCLUDE_DATA) {
+
+                group = "," + j + ":" + (bytesData[i] & 0x7f) + "@" + (bytesData[i + 1] & 0xff) + "#" + (bytesData[i + 2] & 0xff);
+                series.append(group);
+                j++;
+                //大数据问题 查询超过2MB 光标报错
+                if (j >= 86400 ){
+                    W628Data w628Data = new W628Data();
+                    w628Data.setUuid(UuidUtils.getUuid());
+                    w628Data.setUserId(App.getAppData().userProfileInfo.getUserId());
+                    w628Data.setAccountKey(App.getAppData().user.getToken());
+                    Calendar beginCalendar = DateUtils.strToCalendar(startDateString);
+                    beginCalendar.add(Calendar.MILLISECOND, count);
+                    w628Data.setStartDate(FormatUtils.getDateTimeString(beginCalendar.getTime(), FormatUtils.sleep_DbDateTime));
+                    beginCalendar.add(Calendar.DATE, 1);
+                    w628Data.setEndDate(FormatUtils.getDateTimeString(beginCalendar.getTime(), FormatUtils.sleep_DbDateTime));
+                    series.delete(0,1);
+                    w628Data.setSeries(series.toString());
+                    Log.d(TAG, "86400 paresDataW628: serieslength"+ series.length());
+                    recordHistory.add(w628Data);
+                    series.setLength(0);
+                    j = 0;
+                    count++;
+                }
+
+            }
+
+            if (HEAT_TIME) {
+                i = i + 6;
+                HEAT_TIME = false;
+            }
+
+        }
+        if (!"".equals(series.toString())) {
+            recordTimeAll.setUuid(UuidUtils.getUuid());
+            series.delete(0, 1);
+            Calendar beginCalendar= DateUtils.strToCalendar(startDateString);
+            beginCalendar.add(Calendar.DATE, count);
+            recordTimeAll.setStartDate(FormatUtils.getDateTimeString(beginCalendar.getTime(), FormatUtils.sleep_DbDateTime));
+            recordTimeAll.setSeries(series.toString());
+            Log.d(TAG, "paresDataW628: serieslength"+ series.length());
+            recordHistory.add(recordTimeAll);
+        }
+    }
+
+
+}

@@ -1,0 +1,8 @@
+package com.choice.c208sdkblelibrary.cmd.factory;
+
+import com.choice.c208sdkblelibrary.ble.C208sBle;
+import com.choice.c208sdkblelibrary.cmd.command.C208sBaseCommand;
+
+public interface C208sCreatCommandListener {
+    C208sBaseCommand createCommand(C208sBle ble, String cmd);
+}

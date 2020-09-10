@@ -1,0 +1,80 @@
+package com.choice.c208sdkblelibrary.ble;
+
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGattCallback;
+import android.content.Context;
+import android.util.Log;
+
+import com.choice.c208sdkblelibrary.base.BaseBle;
+import com.choice.c208sdkblelibrary.base.BleListener;
+import com.choice.c208sdkblelibrary.base.DeviceType;
+import com.choice.c208sdkblelibrary.device.C208;
+import com.choice.c208sdkblelibrary.gatt.C208GattCallback;
+import com.choice.c208sdkblelibrary.utils.BleScanThreadUtils;
+
+public class C208Ble extends BaseBle {
+    private static final String DEVICE_UUID = "BA11F08C5F140B0D108000";
+
+    public C208Ble(Context context, BleListener bleListener) {
+        super(context, bleListener);
+    }
+
+    @Override
+    protected DeviceType getDeviceType() {
+        return DeviceType.MD300C208;
+    }
+
+    @Override
+    protected BluetoothGattCallback GetGattCallback() {
+        return new C208GattCallback(this);
+    }
+
+    @Override
+    public void sendCmd(String cmd) {
+        C208GattCallback.sendCmd(mBluetoothGatt, cmd);
+    }
+
+    @Override
+    public void onLeScan(final BluetoothDevice bluetoothDevice, int i, byte[] bytes) {
+        final String str = bytes2HexString(bytes);
+        Log.d("onLeScan", "str " + str);
+        BleScanThreadUtils.getInstance().execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    if (!foundDevice && bluetoothDevice != null && bluetoothDevice.getName() != null && str.contains(DEVICE_UUID)) {
+                        synchronized (C208Ble.this) {
+                            if (foundDevice) {
+                                return;
+                            }
+                            foundDevice = true;
+                            Log.d("onLeScan", "已扫描到蓝牙设备 " + bluetoothDevice.getAddress() + " DeviceName: " + bluetoothDevice.getName());
+                            mBleListener.onFoundDevice(getDeviceType(), bluetoothDevice.getName(), bluetoothDevice.getAddress());
+                            stopLeScan();
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+    }
+
+    private static String bytes2HexString(byte[] a) {
+        int len = a.length;
+        byte[] b = new byte[len];
+        for (int k = 0; k < len; k++) {
+            b[k] = a[a.length - 1 - k];
+        }
+        String ret = "";
+        for (int i = 0; i < len; i++) {
+            String hex = Integer.toHexString(b[i] & 0xFF);
+            if (hex.length() == 1) {
+                hex = '0' + hex;
+            }
+            ret += hex.toUpperCase();
+        }
+        return ret;
+    }
+}

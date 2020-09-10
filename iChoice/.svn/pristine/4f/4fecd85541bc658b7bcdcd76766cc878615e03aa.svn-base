@@ -1,0 +1,615 @@
+package com.choicemmed.ichoice.healthreport.fragment;
+
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.graphics.Color;
+import android.os.Build;
+import android.os.Bundle;
+import android.support.annotation.RequiresApi;
+import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.widget.CardView;
+import android.util.Log;
+import android.view.View;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+
+import com.choicemmed.common.DateUtils;
+import com.choicemmed.common.FormatUtils;
+import com.choicemmed.common.LogUtils;
+import com.choicemmed.ichoice.R;
+import com.choicemmed.ichoice.framework.application.App;
+import com.choicemmed.ichoice.framework.base.BaseFragment;
+import com.choicemmed.ichoice.healthcheck.activity.CalenderSelectActivity;
+import com.choicemmed.ichoice.healthcheck.custom.WeekFormatter;
+import com.choicemmed.ichoice.healthcheck.db.Cbp1k1Operation;
+import com.choicemmed.ichoice.healthcheck.db.DeviceDisplayOperation;
+import com.choicemmed.ichoice.healthcheck.db.OxSpotOperation;
+import com.choicemmed.ichoice.healthcheck.entity.AvgData;
+import com.choicemmed.ichoice.framework.utils.DevicesType;
+import com.choicemmed.ichoice.healthcheck.entity.AvgOxData;
+import com.choicemmed.ichoice.healthreport.commend.AvgDataUtils;
+import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.Legend;
+import com.github.mikephil.charting.components.XAxis;
+import com.github.mikephil.charting.components.YAxis;
+import com.github.mikephil.charting.data.Entry;
+import com.github.mikephil.charting.data.LineData;
+import com.github.mikephil.charting.data.LineDataSet;
+import com.prolificinteractive.materialcalendarview.CalendarDay;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+import butterknife.BindView;
+import butterknife.OnClick;
+import pro.choicemmed.datalib.Cbp1k1Data;
+import pro.choicemmed.datalib.DeviceDisplay;
+import pro.choicemmed.datalib.OxSpotData;
+
+
+/**
+ * @author gaofang
+ * @date 2020-07-02
+ * 增加血氧仪趋势图显示
+ */
+public class WeekFragment extends BaseFragment {
+    private static final String TAG = WeekFragment.class.getSimpleName();
+    @BindView(R.id.tv_year)
+    TextView tv_year;
+    @BindView(R.id.tv_month)
+    TextView tv_month;
+    @BindView(R.id.tv_day)
+    TextView tv_day;
+    @BindView(R.id.calendar_left)
+    ImageView calendar_left;
+    @BindView(R.id.calendar_right)
+    ImageView calendar_right;
+    @BindView(R.id.week_chart)
+    LineChart chart;
+
+    @BindView(R.id.bp_week_line)
+    CardView bp_line;
+
+    /**
+     * 血氧仪历史记录趋势图
+     */
+    @BindView(R.id.ll_pulse_oximeter_trend)
+    LinearLayout llPulseOximeterTrend;
+    @BindView(R.id.ox_spo2_chart)
+    LineChart spo2Chart;
+    @BindView(R.id.ox_pr_chart)
+    LineChart prChart;
+    @BindView(R.id.ox_rr_chart)
+    LineChart rrChart;
+    Calendar beginCalendar;
+    private Calendar calendar = Calendar.getInstance();
+    private static String beginDate = FormatUtils.getDateTimeString(new Date(), FormatUtils.template_DbDateTime);
+    int weeksize = 1, max;
+    private Cbp1k1Operation cbp1k1Operation;
+    List<AvgData> avgDataList = new ArrayList<>();
+
+    private OxSpotOperation oxSpotOperation;
+    Map<Integer, AvgOxData> avgOxDataMap = new HashMap<>();
+    String[] weeks;
+
+    BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            try {
+                int year = intent.getIntExtra("year", CalendarDay.today().getYear());
+                int month = intent.getIntExtra("month", CalendarDay.today().getMonth());
+                int day = intent.getIntExtra("day", CalendarDay.today().getDay());
+                calendar.set(year, month, day);
+                setTextDate(calendar);
+                initLine();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    };
+
+    @Override
+    protected int contentViewID() {
+        return R.layout.fragment_week2;
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    @Override
+    protected void initialize() {
+        weeks = new String[]{getString(R.string.sum), getString(R.string.mon), getString(R.string.tue), getString(R.string.wed), getString(R.string.thu), getString(R.string.fri), getString(R.string.sat)};
+        initReceiver();
+        initLine();
+        setTextDate(calendar);
+    }
+
+    private void initReceiver() {
+        IntentFilter intentFilter = new IntentFilter("CalenderSelect");
+        getActivity().registerReceiver(broadcastReceiver, intentFilter);
+    }
+
+    private void initLine() {
+        DeviceDisplayOperation deviceDisplayOperation = new DeviceDisplayOperation(getActivity());
+        DeviceDisplay deviceDisplay = deviceDisplayOperation.queryByUserId(App.getAppData().userProfileInfo.getUserId());
+        if (deviceDisplay == null) {
+            bp_line.setVisibility(View.GONE);
+            llPulseOximeterTrend.setVisibility(View.GONE);
+            return;
+        }
+        if (deviceDisplay.getBloodPressure() == 0) {
+            bp_line.setVisibility(View.GONE);
+        } else {
+            bp_line.setVisibility(View.VISIBLE);
+            initData();
+            initChart();
+            setChartData();
+            CalendarMoveChart(calendar);
+        }
+        //血氧仪
+        if (deviceDisplay.getPulseOximeter() == 0) {
+            llPulseOximeterTrend.setVisibility(View.GONE);
+        } else {
+            llPulseOximeterTrend.setVisibility(View.VISIBLE);
+            initPulseOximeterData();
+            initPulseOximeterChart();
+            setPulseOximeterChartData();
+            CalendarMoveChart(calendar);
+        }
+    }
+
+    public void initPulseOximeterData() {
+        oxSpotOperation = new OxSpotOperation(getContext());
+        List<OxSpotData> list = oxSpotOperation.queryBySyncState(App.getAppData().userProfileInfo.getUserId());
+        if (list.isEmpty()) {
+            return;
+        }
+
+        beginDate = list.get(0).getMeasureDateTime();
+        beginCalendar = DateUtils.strToCalendar(beginDate);
+        int beginday = beginCalendar.get(Calendar.DAY_OF_WEEK);
+        beginCalendar.add(Calendar.DATE, beginday == Calendar.SUNDAY ? 0 : -(beginday - Calendar.SUNDAY));
+        weeksize = DateUtils.differentWeekCalendar(beginCalendar, Calendar.getInstance());
+    }
+
+    private void initPulseOximeterChart() {
+        initSpO2Chart();
+        initPRChart();
+        initRRChart();
+    }
+
+    /**
+     * 初始化Spo2折线图
+     */
+    private void initSpO2Chart() {
+        spo2Chart.setBackgroundColor(Color.WHITE);
+        spo2Chart.setDrawGridBackground(true);
+        spo2Chart.setDrawBorders(false);
+        spo2Chart.setGridBackgroundColor(Color.WHITE);
+        spo2Chart.getDescription().setEnabled(false);
+        spo2Chart.setScaleEnabled(false);
+        spo2Chart.getAxisRight().setEnabled(false);
+        spo2Chart.setTouchEnabled(false);
+
+        XAxis xAxis = spo2Chart.getXAxis();
+        xAxis.setTextSize(12f);
+        xAxis.setAxisMinimum(0f);
+        max = weeksize * 7;
+        xAxis.setAxisMaximum(max);
+
+        WeekFormatter weekFormatter = new WeekFormatter();
+        weekFormatter.setWeeks(weeks);
+        xAxis.setValueFormatter(weekFormatter);
+        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+        spo2Chart.setVisibleXRange(0, 7);
+
+        Legend legend = spo2Chart.getLegend();
+        legend.setEnabled(false);
+
+        //90~100 间隔2
+        YAxis leftAxis = spo2Chart.getAxisLeft();
+        leftAxis.setAxisMaximum(100);
+        leftAxis.setAxisMinimum(90);
+        leftAxis.setLabelCount(6, true);
+        YAxis rightAxis = spo2Chart.getAxisRight();
+        rightAxis.setAxisMaximum(100);
+        rightAxis.setAxisMinimum(90);
+        rightAxis.setLabelCount(6, true);
+
+
+    }
+
+    /**
+     * 初始化PR折线图
+     */
+    private void initPRChart() {
+        prChart.setBackgroundColor(Color.WHITE);
+        prChart.setDrawGridBackground(true);
+        prChart.setDrawBorders(false);
+        prChart.setGridBackgroundColor(Color.WHITE);
+        prChart.getDescription().setEnabled(false);
+        prChart.setScaleEnabled(false);
+        prChart.getAxisRight().setEnabled(false);
+        prChart.setTouchEnabled(false);
+
+        XAxis xAxis_pr = prChart.getXAxis();
+        xAxis_pr.setTextSize(12f);
+        xAxis_pr.setAxisMinimum(0f);
+        max = weeksize * 7;
+        xAxis_pr.setAxisMaximum(max);
+
+
+        WeekFormatter weekFormatter = new WeekFormatter();
+        weekFormatter.setWeeks(weeks);
+        xAxis_pr.setValueFormatter(weekFormatter);
+        xAxis_pr.setPosition(XAxis.XAxisPosition.BOTTOM);
+        prChart.setVisibleXRange(0, 7);
+
+        Legend legend = prChart.getLegend();
+        legend.setEnabled(false);
+
+        //50~120 间隔10
+        YAxis leftAxis_pr = prChart.getAxisLeft();
+        leftAxis_pr.setAxisMaximum(120);
+        leftAxis_pr.setAxisMinimum(50);
+        leftAxis_pr.setLabelCount(8, true);
+        YAxis rightAxis_pr = prChart.getAxisRight();
+        rightAxis_pr.setAxisMaximum(120);
+        rightAxis_pr.setAxisMinimum(50);
+        rightAxis_pr.setLabelCount(8, true);
+
+    }
+
+    /**
+     * 初始化RR折线图
+     */
+    private void initRRChart() {
+        rrChart.setBackgroundColor(Color.WHITE);
+        rrChart.setDrawGridBackground(true);
+        rrChart.setDrawBorders(false);
+        rrChart.setGridBackgroundColor(Color.WHITE);
+        rrChart.getDescription().setEnabled(false);
+        rrChart.setScaleEnabled(false);
+        rrChart.getAxisRight().setEnabled(false);
+        rrChart.setTouchEnabled(false);
+        //24小时 间隔2h
+        XAxis xAxis_rr = rrChart.getXAxis();
+        xAxis_rr.setTextSize(12f);
+        xAxis_rr.setAxisMinimum(0f);
+        max = weeksize * 7;
+        xAxis_rr.setAxisMaximum(max);
+
+        WeekFormatter weekFormatter = new WeekFormatter();
+        weekFormatter.setWeeks(weeks);
+        xAxis_rr.setValueFormatter(weekFormatter);
+        xAxis_rr.setPosition(XAxis.XAxisPosition.BOTTOM);
+        rrChart.setVisibleXRange(0, 7);
+
+        Legend legend = rrChart.getLegend();
+        legend.setEnabled(false);
+
+        //0~70 间隔10
+        YAxis leftAxis_rr = rrChart.getAxisLeft();
+        leftAxis_rr.setAxisMaximum(80);
+        leftAxis_rr.setAxisMinimum(0);
+        leftAxis_rr.setLabelCount(8);
+        YAxis rightAxis_rr = rrChart.getAxisRight();
+        rightAxis_rr.setAxisMaximum(80);
+        rightAxis_rr.setAxisMinimum(0);
+        rightAxis_rr.setLabelCount(8);
+
+    }
+
+    /**
+     * 设置图表数据
+     */
+    private void setPulseOximeterChartData() {
+        List<Entry> spo2List = new ArrayList<>();
+        List<Entry> prList = new ArrayList<>();
+        List<Entry> rrList = new ArrayList<>();
+        List<AvgOxData> avgOxDataList = new ArrayList<>();
+
+        Calendar calendar = DateUtils.strToCalendar(beginDate);
+        int day = calendar.get(Calendar.DAY_OF_WEEK);
+        calendar.add(Calendar.DATE, day == Calendar.SUNDAY ? 0 : -(day - Calendar.SUNDAY));
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        List<OxSpotData> oxSpotDataList = oxSpotOperation.queryAVGDataByDay(App.getAppData().userProfileInfo.getUserId());
+        if (!oxSpotDataList.isEmpty()) {
+            for (int i = 0; i < oxSpotDataList.size(); i++) {
+                long nh = 1000 * 60 * 60 * 24;//一天的毫秒数
+
+                String startTime = oxSpotDataList.get(i).getMeasureDateTime();
+                Calendar calendar1 = Calendar.getInstance();
+                calendar1.setTime(FormatUtils.parseDate(startTime, FormatUtils.template_DbDateTime));
+                int startX = (int) ((calendar1.getTimeInMillis() - calendar.getTimeInMillis()) / (nh));//计算差多少天
+                LogUtils.d(TAG, "startX" + startX);
+                AvgOxData avgOxData = new AvgOxData(oxSpotDataList.get(i).getBloodOxygen(), oxSpotDataList.get(i).getPulseRate(), oxSpotDataList.get(i).getRR());
+                spo2List.add(new Entry(startX, avgOxData.getSpO2Avg()));
+                prList.add(new Entry(startX, avgOxData.getPRAvg()));
+                if (avgOxData.getRRAvg() > 0) {
+                    rrList.add(new Entry(startX, avgOxData.getRRAvg()));
+                }
+            }
+        }
+
+        //图表数据填充
+        LineDataSet spo2Set, prSet, rrSet;
+        int colorId = Objects.requireNonNull(getActivity()).getResources().getColor(R.color.pulse_oximeter_blue);
+        if (spo2Chart.getData() != null && spo2Chart.getData().getDataSetCount() > 0) {
+            spo2Set = (LineDataSet) spo2Chart.getData().getDataSetByIndex(0);
+            spo2Set.setValues(spo2List);
+            spo2Chart.getData().notifyDataChanged();
+            spo2Chart.notifyDataSetChanged();
+        } else {
+            spo2Set = new LineDataSet(spo2List, "");
+            spo2Set.setDrawCircleHole(false);
+            spo2Set.setColor(colorId);
+            spo2Set.setCircleColor(colorId);
+            spo2Set.setLineWidth(1f);
+            spo2Set.setCircleRadius(3f);
+            LineData spo2Data = new LineData(spo2Set);
+            spo2Chart.setData(spo2Data);
+        }
+
+        if (prChart.getData() != null && prChart.getData().getDataSetCount() > 0) {
+            prSet = (LineDataSet) spo2Chart.getData().getDataSetByIndex(0);
+            prSet.setValues(prList);
+            prChart.getData().notifyDataChanged();
+            prChart.notifyDataSetChanged();
+        } else {
+            prSet = new LineDataSet(prList, "");
+            prSet.setColor(colorId);
+            prSet.setCircleColor(colorId);
+            prSet.setDrawCircleHole(false);
+            prSet.setLineWidth(1f);
+            prSet.setCircleRadius(3f);
+            LineData prData = new LineData(prSet);
+            prChart.setData(prData);
+        }
+
+        if (rrChart.getData() != null && rrChart.getData().getDataSetCount() > 0) {
+            rrSet = (LineDataSet) rrChart.getData().getDataSetByIndex(0);
+            rrSet.setValues(rrList);
+            rrChart.getData().notifyDataChanged();
+            rrChart.notifyDataSetChanged();
+        } else {
+            rrSet = new LineDataSet(rrList, "");
+            rrSet.setColor(colorId);
+            rrSet.setCircleColor(colorId);
+            rrSet.setDrawCircleHole(false);
+            rrSet.setLineWidth(1f);
+            rrSet.setCircleRadius(3f);
+            LineData rrData = new LineData(rrSet);
+            rrChart.setData(rrData);
+        }
+        //刷新图表，显示数据
+        spo2Chart.invalidate();
+        prChart.invalidate();
+        rrChart.invalidate();
+    }
+
+    private void CalendarMoveChart(Calendar endCalendar) {
+        Calendar beginCalendar = DateUtils.strToCalendar(beginDate);
+        int beginday = beginCalendar.get(Calendar.DAY_OF_WEEK);
+        beginCalendar.add(Calendar.DATE, beginday == Calendar.SUNDAY ? 0 : -(beginday - Calendar.SUNDAY));
+        int endday = endCalendar.get(Calendar.DAY_OF_WEEK);
+        endCalendar.add(Calendar.DATE, endday == Calendar.SUNDAY ? 0 : -(endday - Calendar.SUNDAY));
+        int diff = DateUtils.differentWeekCalendar(beginCalendar, endCalendar);
+        Log.d("diff", diff + "");
+        chart.moveViewToX(diff * 7f);
+        spo2Chart.moveViewToX(diff * 7f);
+        prChart.moveViewToX(diff * 7f);
+        rrChart.moveViewToX(diff * 7f);
+    }
+
+    private void initData() {
+        cbp1k1Operation = new Cbp1k1Operation(getContext());
+        List<Cbp1k1Data> cbp1k1DataAll = cbp1k1Operation.queryBySyncState(App.getAppData().userProfileInfo.getUserId());
+        if (cbp1k1DataAll.isEmpty()) {
+            return;
+        }
+        beginDate = cbp1k1DataAll.get(0).getMeasureDateTime();
+        Calendar beginCalendar = DateUtils.strToCalendar(beginDate);
+        int beginday = beginCalendar.get(Calendar.DAY_OF_WEEK);
+        beginCalendar.add(Calendar.DATE, beginday == Calendar.SUNDAY ? 0 : -(beginday - Calendar.SUNDAY));
+        weeksize = DateUtils.differentWeekCalendar(beginCalendar, Calendar.getInstance());
+        Log.d("weeksize", weeksize + "");
+    }
+
+
+    private void setChartData() {
+        List<Entry> SysEntries = new ArrayList<>();
+        List<Entry> DiaEntries = new ArrayList<>();
+        Calendar beginCalendar = DateUtils.strToCalendar(beginDate);
+        int day = beginCalendar.get(Calendar.DAY_OF_WEEK);
+        beginCalendar.add(Calendar.DATE, day == Calendar.SUNDAY ? 0 : -(day - Calendar.SUNDAY));
+        for (int i = 0; i < max; i++) {
+            String dateTimeString = FormatUtils.getDateTimeString(beginCalendar.getTime(), FormatUtils.template_Date);
+            Log.d("dateTimeString", i + "|" + dateTimeString);
+            List<Cbp1k1Data> cbp1k1DataList = cbp1k1Operation.queryByDate(dateTimeString, App.getAppData().userProfileInfo.getUserId());
+            if (!cbp1k1DataList.isEmpty()) {
+                AvgData avgData = AvgDataUtils.getavgData(cbp1k1DataList);
+                avgDataList.add(avgData);
+                SysEntries.add(new Entry(i, avgData.getSysAvg()));
+                DiaEntries.add(new Entry(i, avgData.getDiaAvg()));
+            }
+            beginCalendar.add(Calendar.DATE, 1);
+        }
+
+        if (!avgDataList.isEmpty()) {
+            SysEntries.add(new Entry(max + 1, avgDataList.get(avgDataList.size() - 1).getSysAvg()));
+            DiaEntries.add(new Entry(max + 1, avgDataList.get(avgDataList.size() - 1).getDiaAvg()));
+        }
+
+
+        LineDataSet sysSet, diaSet;
+        if (chart.getData() != null &&
+                chart.getData().getDataSetCount() > 0) {
+            sysSet = (LineDataSet) chart.getData().getDataSetByIndex(0);
+            diaSet = (LineDataSet) chart.getData().getDataSetByIndex(1);
+            sysSet.setValues(SysEntries);
+            diaSet.setValues(DiaEntries);
+            chart.getData().notifyDataChanged();
+            chart.notifyDataSetChanged();
+
+        } else {
+
+            sysSet = new LineDataSet(SysEntries, "SYS");
+            sysSet.setDrawCircleHole(false);
+            sysSet.setColor(Color.rgb(255, 128, 0));
+            sysSet.setCircleColor(Color.rgb(255, 128, 0));
+            sysSet.setCircleSize(5f);
+            sysSet.setLineWidth(3f);
+
+            diaSet = new LineDataSet(DiaEntries, "DIA");
+            diaSet.setColor(Color.rgb(65, 105, 225));
+            diaSet.setCircleColor(Color.rgb(65, 105, 225));
+            diaSet.setDrawCircleHole(false);
+            diaSet.setLineWidth(3f);
+            diaSet.setCircleSize(5f);
+
+            LineData data = new LineData(sysSet, diaSet);
+            chart.setData(data);
+
+        }
+        chart.invalidate();
+    }
+
+
+    private void initChart() {
+        chart.setBackgroundColor(Color.WHITE);
+        chart.setDrawGridBackground(true);
+        chart.setDrawBorders(false);
+        chart.setGridBackgroundColor(Color.WHITE);
+        chart.getDescription().setEnabled(false);
+        chart.fitScreen();
+        chart.setScaleEnabled(false);
+        chart.getAxisRight().setEnabled(false);
+        chart.setTouchEnabled(false);
+
+        XAxis xAxis = chart.getXAxis();
+        xAxis.setTextSize(12f);
+        xAxis.setAxisMinimum(0f);
+        max = weeksize * 7;
+        xAxis.setAxisMaximum(max);
+
+        WeekFormatter weekFormatter = new WeekFormatter();
+        weekFormatter.setWeeks(weeks);
+        xAxis.setValueFormatter(weekFormatter);
+        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+        chart.setVisibleXRange(0, 7);
+
+        YAxis leftAxis = chart.getAxisLeft();
+        leftAxis.setAxisMaximum(210);
+        leftAxis.setAxisMinimum(0);
+        leftAxis.setLabelCount(8, true);
+        YAxis rightAxis = chart.getAxisRight();
+        rightAxis.setAxisMaximum(210);
+        rightAxis.setAxisMinimum(0);
+        rightAxis.setLabelCount(8, true);
+
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    @OnClick({R.id.calendar_left, R.id.calendar_right, R.id.calender_select})
+    public void onClick(View view) {
+        Calendar beginCalendar = DateUtils.strToCalendar(beginDate);
+        switch (view.getId()) {
+            case R.id.calendar_left:
+                if (calendar.before(beginCalendar) || isWeek(calendar, beginCalendar)) {
+                    return;
+                }
+                calendar.add(Calendar.DATE, -7);
+                setTextDate(calendar);
+                CalendarMoveChart(calendar);
+                break;
+
+            case R.id.calendar_right:
+                if (calendar.after(Calendar.getInstance()) || isWeek(calendar, Calendar.getInstance())) {
+                    return;
+                }
+                calendar.add(Calendar.DATE, 7);
+                setTextDate(calendar);
+                CalendarMoveChart(calendar);
+                break;
+
+            case R.id.calender_select:
+                Bundle bundle = new Bundle();
+                bundle.putInt("type", DevicesType.All);
+                startActivity(CalenderSelectActivity.class, bundle);
+                getActivity().overridePendingTransition(R.anim.bottom_in, R.anim.bottom_silent);
+                break;
+            default:
+        }
+    }
+
+    public void changeArrowImage(Calendar calendar) {
+        Calendar beginCalendar = DateUtils.strToCalendar(beginDate);
+        if (isWeek(beginCalendar, Calendar.getInstance())) {
+            calendar_left.setImageResource(R.mipmap.left_gay);
+            calendar_right.setImageResource(R.mipmap.right_gay);
+            return;
+        }
+        if (isWeek(calendar, Calendar.getInstance())) {
+            calendar_left.setImageResource(R.mipmap.calendar_left);
+            calendar_right.setImageResource(R.mipmap.right_gay);
+        }
+        if (calendar.after(beginCalendar) && calendar.before(Calendar.getInstance())) {
+            calendar_left.setImageResource(R.mipmap.calendar_left);
+            calendar_right.setImageResource(R.mipmap.arrow_right);
+        }
+        if (isWeek(calendar, beginCalendar)) {
+            calendar_left.setImageResource(R.mipmap.left_gay);
+            calendar_right.setImageResource(R.mipmap.arrow_right);
+        }
+
+    }
+
+    private boolean isWeek(Calendar cal1, Calendar cal2) {
+        int subYear = cal1.get(Calendar.YEAR) - cal2.get(Calendar.YEAR);
+        if (subYear == 0) {
+            if (cal1.get(Calendar.WEEK_OF_YEAR) == cal2.get(Calendar.WEEK_OF_YEAR)) {
+                return true;
+            }
+
+        } else if (subYear == 1 && cal2.get(Calendar.MONTH) == 11) {
+            if (cal1.get(Calendar.WEEK_OF_YEAR) == cal2.get(Calendar.WEEK_OF_YEAR)) {
+                return true;
+            }
+        } else if (subYear == -1 && cal1.get(Calendar.MONTH) == 11) {
+            if (cal1.get(Calendar.WEEK_OF_YEAR) == cal2.get(Calendar.WEEK_OF_YEAR)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+    private void setTextDate(Calendar calendar) {
+        tv_year.setText(calendar.get(Calendar.YEAR) + "");
+        tv_month.setText(calendar.get(Calendar.MONTH) + 1 + "");
+        int day = calendar.get(Calendar.DAY_OF_WEEK);
+        calendar.add(Calendar.DATE, day == Calendar.SUNDAY ? 0 : -(day - Calendar.SUNDAY));
+        int sun = calendar.get(Calendar.DAY_OF_MONTH);
+        calendar.add(Calendar.DATE, 6);
+        int sat = calendar.get(Calendar.DAY_OF_MONTH);
+        tv_day.setText(sun + "-" + sat);
+        changeArrowImage(calendar);
+    }
+
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        getActivity().unregisterReceiver(broadcastReceiver);
+    }
+
+}

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".healthcheck.activity.wristpulse.ResultWpoW314Activity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/white"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="360dp"
+            android:layout_height="30dp"
+            android:layout_gravity="center"
+            android:layout_marginLeft="12dp"
+            android:layout_marginTop="6dp"
+            android:layout_marginRight="12dp"
+            android:layout_marginBottom="5dp"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:id="@+id/line_sleep"
+                style="@style/left_layout"
+                android:layout_width="120dp"
+                android:layout_height="match_parent">
+
+                <TextView
+                    android:id="@+id/tv_sleep"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:text="@string/sleep"
+                    android:textAlignment="center"
+                    android:textColor="@drawable/top_text"
+                    android:textSize="14sp" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/line_real_time"
+                style="@style/mid_layout"
+                android:layout_width="120dp"
+                android:layout_height="match_parent">
+
+                <TextView
+                    android:id="@+id/tv_real_time"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:text="@string/realtime"
+                    android:textAlignment="center"
+                    android:textColor="@drawable/top_text"
+                    android:textSize="14sp" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/line_wpo_historical_trend"
+                style="@style/right_layout"
+                android:layout_width="120dp"
+                android:layout_height="match_parent">
+
+                <TextView
+                    android:id="@+id/tv_wpo_historical_trend"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:text="@string/history_record"
+                    android:textAlignment="center"
+                    android:textColor="@drawable/top_text" />
+
+            </LinearLayout>
+
+
+        </LinearLayout>
+
+        <FrameLayout
+            android:id="@+id/fragment_result_wpo"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+    </LinearLayout>
+</android.support.constraint.ConstraintLayout>

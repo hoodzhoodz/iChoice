@@ -1,0 +1,28 @@
+package com.choicemmed.ichoice.healthcheck.activity.ecg;
+
+import android.view.View;
+
+import com.choicemmed.ichoice.R;
+import com.choicemmed.ichoice.framework.base.BaseActivty;
+
+/**
+ * Created by 117590 on 2020/8/25
+ */
+public class EcgAnalysisActivity extends BaseActivty {
+    @Override
+    protected int contentViewID() {
+        return R.layout.activity_ecg_analysis;
+    }
+
+    @Override
+    protected void initialize() {
+        setTopTitle(getString(R.string.analysis_results), true);
+        setLeftBtnFinish();
+        setRightBtn(true, R.mipmap.ecg_share, new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+            }
+        });
+    }
+}

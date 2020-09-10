@@ -1,0 +1,277 @@
+package com.choicemmed.ichoice.framework.base;
+
+import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.os.Bundle;
+import android.support.annotation.Nullable;
+import android.support.v4.app.FragmentActivity;
+import android.text.TextUtils;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.widget.FrameLayout;
+import android.widget.ImageButton;
+import android.widget.RelativeLayout;
+import android.widget.TextView;
+
+import com.choicemmed.common.ThreadManager;
+import com.choicemmed.common.ToastUtils;
+import com.choicemmed.ichoice.R;
+import com.choicemmed.ichoice.framework.application.App;
+import com.choicemmed.ichoice.framework.utils.ActivityUtils;
+import com.choicemmed.ichoice.framework.utils.MethodsUtils;
+import com.choicemmed.ichoice.framework.utils.PermissionsUtils;
+import com.choicemmed.ichoice.framework.utils.StatusBarUtils;
+import com.choicemmed.ichoice.healthcheck.adddevice.entity.DeviceIconvo;
+import com.choicemmed.ichoice.initalization.activity.MainActivity;
+
+import butterknife.ButterKnife;
+
+/**
+ * Created by gaofang on 2019/1/11.
+ */
+
+public abstract class BaseActivty extends FragmentActivity {
+    protected Activity mContext;
+    ImageButton btnLeft;
+    TextView tvTitle;
+    ImageButton btnRight;
+    RelativeLayout rlTopbar;
+    FrameLayout viewContent;
+
+    @Override
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        mContext = this;
+        ActivityUtils.addActivity(this); //添加进activity管理
+        setContentView(R.layout.activity_base);
+        initTop();
+        LayoutInflater.from(mContext).inflate(contentViewID(), viewContent);
+        ButterKnife.bind(mContext);
+        StatusBarUtils.setColorNoTranslucent(this, getResources().getColor(R.color.color_04d9b4));
+        initialize();
+
+    }
+
+    private void initTop() {
+        btnLeft = findViewById(R.id.btn_left);
+        btnRight = findViewById(R.id.btn_right);
+        tvTitle = findViewById(R.id.tv_title);
+        rlTopbar = findViewById(R.id.rl_topbar);
+        viewContent = findViewById(R.id.view_content);
+    }
+
+    /**
+     * 设置标题名称
+     *
+     * @param topName 标题名
+     * @param show    是否显示标题栏
+     */
+    protected void setTopTitle(String topName, boolean show) {
+        if (show) {
+            if (!TextUtils.isEmpty(topName)) {
+                tvTitle.setText(topName);
+            }
+        } else {
+            rlTopbar.setVisibility(View.GONE);
+        }
+    }
+
+    /**
+     * 设置标题栏左侧的按钮
+     *
+     * @param show      是否显示左边按钮
+     * @param ResId     图片id
+     * @param leftClick 左边按钮点击事件
+     */
+    protected void setLeftBtn(boolean show, int ResId, View.OnClickListener leftClick) {
+        if (show) {
+            btnLeft.setImageDrawable(mContext.getResources().getDrawable(ResId));
+            btnLeft.setOnClickListener(leftClick);
+        } else {
+            btnLeft.setVisibility(View.GONE);
+        }
+    }
+
+
+    /**
+     * 设置标题栏左侧的按钮-返回按钮
+     */
+    protected void setLeftBtnFinish() {
+        btnLeft.setImageDrawable(mContext.getResources().getDrawable(R.mipmap.ic_back));
+        btnLeft.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
+
+    }
+    /**
+     * 设置标题栏左侧的按钮-返回按钮
+     */
+    protected void setLeftBtnToActivity(final Class<?> clz) {
+        btnLeft.setImageDrawable(mContext.getResources().getDrawable(R.mipmap.ic_back));
+        btnLeft.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+               startActivityFinish(clz);
+            }
+        });
+    }
+
+    /**
+     * 设置标题栏左侧的按钮-返回按钮
+     */
+    protected void setLeftBtnToActivity(final Class<?> clz, final Bundle bundle) {
+        btnLeft.setImageDrawable(mContext.getResources().getDrawable(R.mipmap.ic_back));
+        btnLeft.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivityFinish(clz, bundle);
+            }
+        });
+    }
+
+    /**
+     * 设置标题栏右侧的按钮
+     *
+     * @param show       是否显示右边按钮
+     * @param ResId      图片id
+     * @param rightClick 右边按钮点击事件
+     */
+    protected void setRightBtn(boolean show, int ResId, View.OnClickListener rightClick) {
+        if (show) {
+            btnRight.setImageDrawable(mContext.getResources().getDrawable(ResId));
+            btnRight.setOnClickListener(rightClick);
+        } else {
+            btnRight.setVisibility(View.GONE);
+        }
+    }
+
+
+    /**
+     * Activity 关联布局文件
+     *
+     * @return
+     */
+    protected abstract int contentViewID();
+
+    /**
+     * 对象初始化，方法调用
+     */
+    protected abstract void initialize();
+
+    /**
+     * 防止快速点击
+     *
+     * @return
+     */
+    public boolean fastClick() {
+        long lastClick = 0;
+        if (System.currentTimeMillis() - lastClick <= 2000) {
+            return false;
+        }
+        lastClick = System.currentTimeMillis();
+        return true;
+    }
+
+    /**
+     * toast短时间提示
+     *
+     * @param text
+     */
+    public void showToast(String text) {
+        ToastUtils.showShort(this, text);
+    }
+
+    /**
+     * toast长时间提示
+     *
+     * @param text
+     */
+    public void showLongToast(String text) {
+        ToastUtils.showLong(this, text);
+    }
+
+
+    /**
+     * 页面跳转
+     *
+     * @param clz
+     */
+    public void startActivity(Class<?> clz) {
+        startActivity(clz, null);
+    }
+
+    /**
+     * 页面跳转,跳转后关闭界面
+     *
+     * @param clz
+     */
+    public void startActivityFinish(Class<?> clz) {
+        startActivity(clz, null);
+        finish();
+    }
+    public void startActivityFinish(Class<?> clz, Bundle bundle) {
+        Intent intent = new Intent(this, clz);
+        if (null != bundle){
+            intent.putExtras(bundle);
+        }
+        startActivity(intent);
+        finish();
+    }
+
+    public void startActivity(Class<?> clz, Bundle bundle) {
+        Intent intent = new Intent(this, clz);
+        if (null != bundle){
+            intent.putExtras(bundle);
+        }
+        startActivity(intent);
+    }
+
+    public void startActivityFinish(Class<?> clz, int titleId) {
+        Intent intent = new Intent(this, clz);
+        intent.putExtra("titleId", titleId);
+        startActivity(intent);
+        finish();
+    }
+
+    public void startActivityFinish(Class<?> clz, String title) {
+        Intent intent = new Intent(this, clz);
+        intent.putExtra("titleName", title);
+        startActivity(intent);
+        finish();
+    }
+
+    public void startActivityNOFinish(Class<?> clz, DeviceIconvo deviceIconvo) {
+        Intent intent = new Intent(this, clz);
+        intent.putExtra("deviceIconvo", deviceIconvo);
+        startActivity(intent);
+//        finish();
+    }
+
+    private long lastClickTime;
+
+    /**
+     * 实现连续点击两次才退出应用程序
+     */
+    public void exit() {
+        if ((System.currentTimeMillis() - lastClickTime) > 2000) {
+            showToast(getString(R.string.tip_exit));
+            lastClickTime = System.currentTimeMillis();
+        } else {
+            ActivityUtils.removeAll();
+            System.exit(0);
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        ActivityUtils.removeActivity(this);
+        super.onDestroy();
+    }
+
+
+}

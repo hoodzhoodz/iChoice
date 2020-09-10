@@ -1,0 +1,225 @@
+package com.choicemmed.ichoice.healthcheck.fragment.pulseoximeter;
+
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.graphics.Color;
+import android.os.Handler;
+import android.widget.TextView;
+
+import com.choicemmed.common.DateUtils;
+import com.choicemmed.common.FormatUtils;
+import com.choicemmed.common.LogUtils;
+import com.choicemmed.ichoice.R;
+import com.choicemmed.ichoice.framework.base.BaseActivty;
+import com.choicemmed.ichoice.healthcheck.custom.Spo2YFormatter;
+import com.choicemmed.ichoice.healthcheck.custom.TimeXFormatter;
+import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.XAxis;
+import com.github.mikephil.charting.components.YAxis;
+import com.github.mikephil.charting.data.Entry;
+import com.github.mikephil.charting.data.LineData;
+import com.github.mikephil.charting.data.LineDataSet;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+
+import butterknife.BindView;
+import pro.choicemmed.datalib.OxRealTimeData;
+import pro.choicemmed.datalib.OxRealTimeDataDao;
+
+import static com.choicemmed.ichoice.framework.base.BaseDb.getDaoSession;
+
+
+public class OXRealCheckChartActivity extends BaseActivty {
+    static String TAG = OXRealCheckChartActivity.class.getSimpleName();
+    @BindView(R.id.spo2_chart)
+    LineChart spo2Chart;
+    @BindView(R.id.pluse_rate_chart)
+    LineChart pluseRateChart;
+    @BindView(R.id.rr_chart)
+    LineChart rrChart;
+    private OxRealTimeData oxRealTimeData;
+
+    List<Entry> spEntries = new ArrayList<>();
+    List<Entry> prEntries = new ArrayList<>();
+    List<Entry> rrEntries = new ArrayList<>();
+    LineDataSet spSet, prSet, rrSet;
+    Calendar mCalendar;
+    int x;
+
+    List<Integer> spData = new ArrayList<>();
+    List<Integer> prData = new ArrayList<>();
+    List<Integer> rrData = new ArrayList<>();
+    int lastIndex;
+
+    private void setEntries() {
+        for (int i = 0; i < spData.size(); i++) {
+            spEntries.add(new Entry((i * 1.0f) / 120, spData.get(i)));
+            prEntries.add(new Entry((i * 1.0f) / 120, prData.get(i)));
+            rrEntries.add(new Entry((i * 1.0f) / 120, rrData.get(i)));
+        }
+    }
+
+
+    @Override
+    protected int contentViewID() {
+        return R.layout.activity__ox_real_chart;
+    }
+
+    @Override
+    protected void initialize() {
+        setTopTitle(getResources().getString(R.string.real_time_measurement), true);
+        setLeftBtnFinish();
+        oxRealTimeData = getDaoSession(this).getOxRealTimeDataDao().queryBuilder().where(OxRealTimeDataDao.Properties.Id.eq(getIntent().getExtras().getString("uuid"))).unique();
+        String[] data = oxRealTimeData.getSeries().split("\\|");
+        for (int i = 0; i < data.length; i++) {
+            String[] s = data[i].split(",");
+            String spo2 = s[1];
+            String pr = s[2];
+            String rr = s[4];
+            spData.add(Integer.parseInt(spo2));
+            prData.add(Integer.parseInt(pr));
+            rrData.add(Integer.parseInt(rr));
+        }
+
+
+        lastIndex = Integer.parseInt(data[data.length - 1].split(",")[0]);
+
+        mCalendar = Calendar.getInstance();
+
+        Date start = FormatUtils.parseDate(oxRealTimeData.getMeasureDateStartTime(), FormatUtils.template_DbDateTime);
+        Date end = FormatUtils.parseDate(oxRealTimeData.getMeasureDateEndTime(), FormatUtils.template_DbDateTime);
+        mCalendar.setTime(start);
+        int during = (int) (end.getTime() - start.getTime()) / 1000;
+        if (during <= 360) {
+            x = 6;
+        } else {
+            if (during % 60 != 0) {
+                x = (during / 60) + 1;
+                if (x % 2 != 0) {
+                    x = x + 1;
+                }
+            } else {
+                x = during / 60;
+            }
+        }
+        initChart();
+    }
+
+    private void initChart() {
+        setSpO2Chart();
+        setPluseRateChart();
+        setRRChart();
+    }
+
+    private void setRRChart() {
+        rrChart.setBackgroundColor(Color.WHITE);
+        rrChart.setDrawGridBackground(true);
+        rrChart.setDrawBorders(false);
+        rrChart.setGridBackgroundColor(Color.WHITE);
+        rrChart.getDescription().setEnabled(false);
+        rrChart.fitScreen();
+        rrChart.setScaleEnabled(false);
+        rrChart.getAxisRight().setEnabled(false);
+        rrChart.setTouchEnabled(false);
+
+        YAxis rrChartAxisLeft = rrChart.getAxisLeft();
+        rrChartAxisLeft.setAxisMaximum(70);
+        rrChartAxisLeft.setAxisMinimum(0);
+        rrChartAxisLeft.setLabelCount(7);
+
+        XAxis rrChartXAxis = rrChart.getXAxis();
+        rrChartXAxis.setTextSize(8f);
+        rrChartXAxis.setAxisMaximum(x / 2);
+        rrChartXAxis.setAxisMinimum(0);
+        rrChartXAxis.setLabelCount(x / 2);
+        rrChartXAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+        rrChartXAxis.setValueFormatter(new TimeXFormatter(mCalendar));
+
+        rrSet = new LineDataSet(rrEntries, getString(R.string.rr));
+        rrSet.setColor(Color.rgb(138, 43, 226));
+        rrSet.setDrawCircles(false);
+        rrSet.setDrawValues(false);
+        LineData splineData = new LineData(rrSet);
+        rrChart.setData(splineData);
+    }
+
+    private void setSpO2Chart() {
+        spo2Chart.setBackgroundColor(Color.WHITE);
+        spo2Chart.setDrawGridBackground(true);
+        spo2Chart.setDrawBorders(false);
+        spo2Chart.setGridBackgroundColor(Color.WHITE);
+        spo2Chart.getDescription().setEnabled(false);
+        spo2Chart.fitScreen();
+        spo2Chart.setScaleEnabled(false);
+        spo2Chart.getAxisRight().setEnabled(false);
+        spo2Chart.setTouchEnabled(false);
+
+        YAxis spo2ChartAxisLeft = spo2Chart.getAxisLeft();
+        spo2ChartAxisLeft.setAxisMaximum(100);
+        spo2ChartAxisLeft.setAxisMinimum(90);
+        spo2ChartAxisLeft.setLabelCount(5);
+        spo2ChartAxisLeft.setValueFormatter(new Spo2YFormatter());
+
+        XAxis spo2ChartXAxis = spo2Chart.getXAxis();
+        spo2ChartXAxis.setTextSize(8f);
+        spo2ChartXAxis.setAxisMaximum(x / 2);
+        spo2ChartXAxis.setAxisMinimum(0);
+        spo2ChartXAxis.setLabelCount(x / 2);
+
+        spo2ChartXAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+        spo2ChartXAxis.setValueFormatter(new TimeXFormatter(mCalendar));
+        setEntries();
+        spSet = new LineDataSet(spEntries, getString(R.string.spo2));
+        spSet.setColor(Color.rgb(138, 43, 226));
+        spSet.setDrawCircles(false);
+        spSet.setDrawValues(false);
+        LineData splineData = new LineData(spSet);
+        spo2Chart.setData(splineData);
+    }
+
+    private void setPluseRateChart() {
+        pluseRateChart.setBackgroundColor(Color.WHITE);
+        pluseRateChart.setDrawGridBackground(true);
+        pluseRateChart.setDrawBorders(false);
+        pluseRateChart.setGridBackgroundColor(Color.WHITE);
+        pluseRateChart.getDescription().setEnabled(false);
+        pluseRateChart.fitScreen();
+        pluseRateChart.setScaleEnabled(false);
+        pluseRateChart.getAxisRight().setEnabled(false);
+        pluseRateChart.setTouchEnabled(false);
+
+        YAxis pluseRateChartAxisLeft = pluseRateChart.getAxisLeft();
+        pluseRateChartAxisLeft.setAxisMaximum(120);
+        pluseRateChartAxisLeft.setAxisMinimum(50);
+        pluseRateChartAxisLeft.setLabelCount(7);
+
+        XAxis pluseRateChartXAxis = pluseRateChart.getXAxis();
+        pluseRateChartXAxis.setTextSize(8f);
+        pluseRateChartXAxis.setAxisMaximum(x / 2);
+        pluseRateChartXAxis.setAxisMinimum(0);
+        pluseRateChartXAxis.setLabelCount(x / 2);
+
+        pluseRateChartXAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+        pluseRateChartXAxis.setValueFormatter(new TimeXFormatter(mCalendar));
+
+
+        prSet = new LineDataSet(prEntries, getString(R.string.pulse_rate));
+        prSet.setColor(Color.rgb(138, 43, 226));
+        prSet.setDrawCircles(false);
+        prSet.setDrawValues(false);
+        LineData prlineData = new LineData(prSet);
+        pluseRateChart.setData(prlineData);
+    }
+
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+    }
+
+}

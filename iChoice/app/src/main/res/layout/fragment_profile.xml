@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:fresco="http://schemas.android.com/apk/res-auto"
+    xmlns:stv="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:background="@color/white"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <android.support.v4.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+            <com.facebook.drawee.view.SimpleDraweeView
+                android:id="@+id/img_profile"
+                android:layout_width="@dimen/dp_80"
+                android:layout_height="@dimen/dp_80"
+                android:layout_gravity="center"
+                android:layout_marginBottom="@dimen/dp_14"
+                android:layout_marginTop="@dimen/dp_33"
+                fresco:placeholderImage="@mipmap/ic_show_avatar"
+                fresco:roundAsCircle="true"/>
+            <!--            <ImageView-->
+            <!--                android:id="@+id/img_profile_failure"-->
+            <!--                android:layout_width="@dimen/dp_80"-->
+            <!--                android:layout_height="@dimen/dp_80"-->
+            <!--                android:layout_gravity="center"-->
+            <!--                android:layout_marginBottom="@dimen/dp_14"-->
+            <!--                android:layout_marginTop="@dimen/dp_33"-->
+            <!--                android:src="@mipmap/ic_show_avatar"-->
+            <!--                android:visibility="gone"/>-->
+            <TextView
+                android:id="@+id/tv_profile_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textSize="18dp"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginBottom="@dimen/dp_32"
+                android:textColor="@color/color_b5b5b6"/>
+            <View style="@style/horizontal_line_style" />
+            <com.allen.library.SuperTextView
+                android:id="@+id/stv_profile_my_device"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/dp_43"
+                stv:sLeftTextString="@string/my_devices"
+                stv:sLeftTextSize="@dimen/sp_15"
+                stv:sLeftTextColor="@color/color_000000"
+                stv:sRightIconRes="@drawable/ic_right_next" />
+            <View style="@style/horizontal_line_style" />
+            <com.allen.library.SuperTextView
+                android:id="@+id/stv_profile_settings"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/dp_43"
+                stv:sLeftTextString="@string/settings"
+                stv:sLeftTextSize="@dimen/sp_15"
+                stv:sLeftTextColor="@color/color_000000"
+                stv:sRightIconRes="@drawable/ic_right_next" />
+            <View style="@style/horizontal_line_style" />
+            <com.allen.library.SuperTextView
+                android:id="@+id/stv_profile_about"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/dp_43"
+                stv:sLeftTextString="@string/about_us"
+                stv:sLeftTextSize="@dimen/sp_15"
+                stv:sLeftTextColor="@color/color_000000"
+                stv:sRightIconRes="@drawable/ic_right_next" />
+            <View style="@style/horizontal_line_style" />
+            <com.allen.library.SuperTextView
+                android:id="@+id/stv_profile_disclaimer"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/dp_43"
+                stv:sLeftTextString="@string/disclaimer"
+                stv:sLeftTextSize="@dimen/sp_15"
+                stv:sLeftTextColor="@color/color_000000"
+                stv:sRightIconRes="@drawable/ic_right_next" />
+            <View style="@style/horizontal_line_style" />
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/dp_43"
+                android:paddingLeft="@dimen/dp_10"
+                android:paddingRight="@dimen/dp_10"
+                android:background="@color/white">
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+                    <TextView
+                        android:id="@+id/tv_profile_version"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Version:V1.0.0"
+                        android:textColor="@color/color_000000"
+                        android:textSize="@dimen/sp_15"/>
+                </LinearLayout>
+            </RelativeLayout>
+            <View style="@style/horizontal_line_style" />
+
+            <Button
+                android:id="@+id/btn_profile_logout"
+                style="@style/style_button"
+                android:layout_marginTop="@dimen/dp_75"
+                android:background="@drawable/selector_btn_positive"
+                android:text="@string/logout"
+                android:layout_margin="@dimen/dp_34"/>
+        </LinearLayout>
+    </android.support.v4.widget.NestedScrollView>
+
+</LinearLayout>

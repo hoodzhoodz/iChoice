@@ -1,0 +1,314 @@
+package com.choicemmed.ichoice.healthcheck.service;
+
+import android.app.Service;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothManager;
+import android.content.Context;
+import android.content.Intent;
+import android.os.Binder;
+import android.os.Handler;
+import android.os.IBinder;
+import android.util.Log;
+
+import com.choicemmed.cbp1k1sdkblelibrary.utils.ErrorCode;
+import com.choicemmed.common.ByteUtils;
+import com.choicemmed.common.LogUtils;
+import com.choicemmed.common.ThreadManager;
+import com.choicemmed.ichoice.framework.application.App;
+import com.choicemmed.ichoice.framework.utils.ParesUtils;
+import com.choicemmed.ichoice.healthcheck.db.DeviceOperation;
+import com.choicemmed.ichoice.healthcheck.db.W628Operation;
+import com.choicemmed.ichoice.framework.utils.DevicesType;
+import com.choicemmed.wristpulselibrary.cmd.invoker.W628Invoker;
+import com.choicemmed.wristpulselibrary.cmd.listener.W628Listener;
+import com.choicemmed.wristpulselibrary.entity.Device;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import pro.choicemmed.datalib.DeviceInfo;
+import pro.choicemmed.datalib.W628Data;
+
+public class W628BleConService extends Service implements W628Listener {
+    public static final String TAG = "W628BleConService";
+    private List<DeviceInfo> list;
+    private W628Invoker invoker;
+    Device device;
+//    private Subscription subscription;
+    public static boolean BLUETOOTH_CONNECT_STATE = false;
+    public static boolean BLUETOOTH_SYNC_STATE = false;
+    public static boolean BLUETOOTH_REALTIME_STATE = false;
+    private Handler handler = new Handler();
+    private ScanBleBinder binder = new ScanBleBinder();
+
+    public W628BleConService() {
+    }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        return binder;
+    }
+
+    public class ScanBleBinder extends Binder {
+        public void cancelConnect() {
+//            if (subscription != null && subscription.isUnsubscribed()) {
+//                subscription.unsubscribe();
+//            }
+            BLUETOOTH_CONNECT_STATE = false;
+            BLUETOOTH_SYNC_STATE = false;
+            BLUETOOTH_REALTIME_STATE = false;
+            LogUtils.d(TAG, "关闭Gatt,取消所有待连接！");
+            invoker.disconnectDevice();
+        }
+
+        public void onSyncData() {
+            LogUtils.d(TAG, "----startConnectBle-----");
+            BLUETOOTH_SYNC_STATE = true;
+            init();
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    if (!BLUETOOTH_CONNECT_STATE) {
+                        BLUETOOTH_SYNC_STATE = false;
+                        LogUtils.d(TAG, "BLUETOOTH_SYNC_STATE1");
+                        ThreadManager.cancelTask();
+                        invoker.disconnectDevice();
+                        Intent intent = new Intent();
+                        intent.setAction("W628BleConService:connectFail");
+                        sendBroadcast(intent);
+                        handler.removeCallbacksAndMessages(null);
+                    }
+                }
+            }, 10000);
+        }
+
+        public void onRealTimeStart() {
+            BLUETOOTH_REALTIME_STATE = true;
+            init();
+        }
+
+        public void onRealTimeEnd() {
+            if (BLUETOOTH_CONNECT_STATE && BLUETOOTH_REALTIME_STATE) {
+                invoker.onRealTimeQuit(0);
+            }
+        }
+
+        public void onSyncQuit() {
+            invoker.onSyncQuit();
+            invoker.disconnectDevice();
+        }
+    }
+
+    private void init() {
+        list = new DeviceOperation(this).queryByUserIdType(App.getAppData().userProfileInfo.getUserId(),
+                DevicesType.WristPluseOximeter);
+        if (list.isEmpty()) {
+            return;
+        }
+        openBluetoothBle();
+        LogUtils.d(TAG, "devices：" + list.toString());
+        searchDv(list);
+    }
+
+    private void searchDv(List<DeviceInfo> list) {
+        if (list.size() != 0) {
+            for (final DeviceInfo deviceInfo : list) {
+                ThreadManager.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        device = new Device();
+                        device.setDeviceName(deviceInfo.getDeviceName());
+                        device.setDeviceMacAddress(deviceInfo.getBluetoothId());
+                        connectW628(device);
+                    }
+                });
+            }
+        } else {
+            LogUtils.d(TAG, "没有绑定设备");
+        }
+    }
+
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        Log.d(TAG, "-------onCreate-----");
+        invoker = new W628Invoker(this, this);
+    }
+
+    @Override
+    public void onBindDeviceSuccess(Device mDevice) {
+
+    }
+
+    @Override
+    public void onBindDeviceFail(int message) {
+        BLUETOOTH_CONNECT_STATE = false;
+        LogUtils.d(TAG, "连接设备失败");
+    }
+
+    @Override
+    public void onError(int message) {
+        LogUtils.d(TAG, "蓝牙连接返回错误信息----->" + message);
+        switch (message) {
+            //未打开蓝牙
+            case ErrorCode.ERROR_BLUETOOTH_NOT_OPEN:
+                openBluetoothBle();
+                break;
+            case ErrorCode.ERROR_GATT_EXCEPTION:
+                if (BLUETOOTH_REALTIME_STATE || BLUETOOTH_SYNC_STATE) {
+                    if (device != null){
+                        connectW628(device);
+                    }
+                }
+                break;
+            case ErrorCode.ERROR_BLE_DISCONNECT:
+                Intent intent = new Intent();
+                intent.setAction("W628BleConService:onDisconnected");
+                sendBroadcast(intent);
+                break;
+            default:
+        }
+    }
+
+    private void openBluetoothBle() {
+        BluetoothManager bluetoothManager = (BluetoothManager) this.getSystemService(Context.BLUETOOTH_SERVICE);
+        BluetoothAdapter bluetoothAdapter = bluetoothManager.getAdapter();
+        if (bluetoothAdapter != null && !bluetoothAdapter.isEnabled()) {
+            LogUtils.d(TAG, "检测到蓝牙未打开：重新开启蓝牙！");
+            bluetoothAdapter.enable();//不弹对话框直接开启蓝牙
+        }
+    }
+
+
+
+    private void connectW628(Device device) {
+        invoker.connectDevice(device);
+    }
+
+    @Override
+    public void onConnectedDeviceSuccess() {
+        handler.removeCallbacksAndMessages(null);
+        LogUtils.d(TAG, "连接设备成功"+"\n"+"BLUETOOTH_SYNC_STATE "+BLUETOOTH_SYNC_STATE);
+        invoker.stopScan();
+        if (BLUETOOTH_SYNC_STATE) {
+            invoker.onSync();
+        } else if (BLUETOOTH_REALTIME_STATE) {
+            invoker.onRealTimeStart();
+        }
+        BLUETOOTH_CONNECT_STATE = true;
+    }
+
+    @Override
+    public void onDisconnected() {
+        BLUETOOTH_CONNECT_STATE = false;
+        BLUETOOTH_SYNC_STATE = false;
+        BLUETOOTH_REALTIME_STATE = false;
+        Intent intent = new Intent();
+        intent.setAction("W628BleConService:onDisconnected");
+        sendBroadcast(intent);
+        LogUtils.d(TAG, "BLUETOOTH_SYNC_STATE2");
+
+    }
+    @Override
+    public void onStateChanged(int bleState, int state) {
+
+    }
+
+    @Override
+    public void onRecordDataResponse(String recordData, String recordTime, long timeDiff) {
+        byte[] bytesData = ByteUtils.hexString2Bytes(recordData);
+        byte[] bytesTime = ByteUtils.hexString2Bytes(recordTime);
+        LogUtils.d(TAG, "接收到的开关机数据----->" + recordTime);
+        LogUtils.d(TAG, "接收到的血氧脉率数据----->" + recordData);
+        List<W628Data> listTime = ParesUtils.analysisTimeW628(bytesTime, timeDiff);
+        LogUtils.d(TAG, "处理后的开关机数据---->" + listTime.toString());
+
+        List<W628Data> recordHistory = new ArrayList<>();
+        for (W628Data recordTimeAll : listTime) {
+            String start = recordTimeAll.getStartDate();
+            String end = recordTimeAll.getEndDate();
+            if (!start.isEmpty() && !end.isEmpty()) {
+                ParesUtils.paresDataW628(bytesData, recordTimeAll, recordHistory, timeDiff);
+            }
+        }
+        W628Operation w628Operation = new W628Operation(this);
+        if (!recordHistory.isEmpty()) {
+            for (W628Data w628Data : recordHistory) {
+                w628Operation.insertW628(w628Data);
+            }
+        }
+        Intent intent = new Intent();
+        intent.setAction("W628BleConService:onRecordDataResponse");
+        sendBroadcast(intent);
+
+    }
+
+    @Override
+    public void onRealTimeSpoData(int realTimeSpoData) {
+        Log.d(TAG, "realTimeSpoData:" + realTimeSpoData);
+        Intent intent = new Intent();
+        intent.putExtra("realTimeSpoData", realTimeSpoData);
+        intent.setAction("W628BleConService:realTimeSpoData");
+        sendBroadcast(intent);
+
+    }
+
+    @Override
+    public void onRealTimePRData(int realTimePRData) {
+        Log.d(TAG, "realTimePRData:" + realTimePRData);
+        Intent intent = new Intent();
+        intent.putExtra("realTimePRData", realTimePRData);
+        intent.setAction("W628BleConService:realTimePRData");
+        sendBroadcast(intent);
+
+    }
+
+    @Override
+    public void onRealTimePIData(float realTimePIDate) {
+        Log.d(TAG, "realTimePIDate:" + realTimePIDate);
+        Intent intent = new Intent();
+        intent.putExtra("realTimePIData", realTimePIDate);
+        intent.setAction("W628BleConService:realTimePIData");
+        sendBroadcast(intent);
+
+    }
+
+    @Override
+    public void onRealTimeRRData(int realTimeRRDate) {
+        Log.d(TAG, "realTimeRRData:" + realTimeRRDate);
+        Intent intent = new Intent();
+        intent.putExtra("realTimeRRData", realTimeRRDate);
+        intent.setAction("W628BleConService:realTimeRRData");
+        sendBroadcast(intent);
+
+    }
+
+    @Override
+    public void exitSuccess() {
+//        BLUETOOTH_CONNECT_STATE = false;
+//        if (BLUETOOTH_SYNC_STATE) {
+//            LogUtils.d(TAG, "BLUETOOTH_SYNC_STATE3");
+//            BLUETOOTH_SYNC_STATE = false;
+//            Intent intent = new Intent();
+//            intent.setAction("W628BleConService:exitSuccess");
+//            sendBroadcast(intent);
+//        }
+//        BLUETOOTH_REALTIME_STATE = false;
+    }
+
+    @Override
+    public void onRealTimeNone() {
+
+    }
+
+    @Override
+    public void onRealTimeWaveData(Float realTimeWaveData) {
+
+    }
+
+    @Override
+    public boolean onUnbind(Intent intent) {
+        return super.onUnbind(intent);
+    }
+}

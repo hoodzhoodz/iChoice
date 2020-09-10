@@ -1,0 +1,199 @@
+package com.choicemmed.ichoice.healthcheck.fragment.ecg.bean;
+
+import java.util.List;
+
+public class AnResult {
+
+    /**
+     * code : 0
+     * quality : good
+     * observation : {"hr":96,"Number_of_Ectopic_Beats":2,"ecbeat":[6681,4048]}
+     * conclusion : {"AVB_III":"absent","AF":"absent","Abnormal":"positive","With_Ectopic_Beats":"singlet","LongRR":"absent","Other":"present","Tachycardia":"absent","Bradycardia":"absent"}
+     */
+
+    private int code;//每个返回里有且仅有一个，0=正常返回，非0值表示请求中包含错误，具体含义可扩展
+    private String quality;//每个返回里只有0或者1个，表示系统判定请求的信号质量水平，可以是：“nogood”, “good”，两种取值
+    private ObservationBean observation;
+    private ConclusionBean conclusion;
+    private String pageurl;
+    private String pdfurl;
+    private String locale;
+
+    public String getLocale() {
+        return locale;
+    }
+
+    public void setLocale(String locale) {
+        this.locale = locale;
+    }
+
+    public int getCode() {
+        return code;
+    }
+
+    public void setCode(int code) {
+        this.code = code;
+    }
+
+    public String getQuality() {
+        return quality;
+    }
+
+    public void setQuality(String quality) {
+        this.quality = quality;
+    }
+
+    public ObservationBean getObservation() {
+        return observation;
+    }
+
+    public void setObservation(ObservationBean observation) {
+        this.observation = observation;
+    }
+
+    public ConclusionBean getConclusion() {
+        return conclusion;
+    }
+
+    public void setConclusion(ConclusionBean conclusion) {
+        this.conclusion = conclusion;
+    }
+
+    public String getPageurl() {
+        return pageurl;
+    }
+
+    public void setPageurl(String pageurl) {
+        this.pageurl = pageurl;
+    }
+
+    public String getPdfurl() {
+        return pdfurl;
+    }
+
+    public void setPdfurl(String pdfurl) {
+        this.pdfurl = pdfurl;
+    }
+
+    public static class ObservationBean {
+        /**
+         * hr : 96
+         * Number_of_Ectopic_Beats : 2
+         * ecbeat : [6681,4048]
+         */
+
+        private int hr;//每分钟平均心率
+        private int Number_of_Ectopic_Beats;//片段中早搏数量。注意：由于早搏需要前后多跳信息联合判断，这里的判断不包含片段开始前3跳和末尾后3跳
+        private List<Integer> ecbeat;//整数数组返回，未区分性质的早博/逸博。取值为请求采样信号的位置。
+
+        public int getHr() {
+            return hr;
+        }
+
+        public void setHr(int hr) {
+            this.hr = hr;
+        }
+
+        public int getNumber_of_Ectopic_Beats() {
+            return Number_of_Ectopic_Beats;
+        }
+
+        public void setNumber_of_Ectopic_Beats(int Number_of_Ectopic_Beats) {
+            this.Number_of_Ectopic_Beats = Number_of_Ectopic_Beats;
+        }
+
+        public List<Integer> getEcbeat() {
+            return ecbeat;
+        }
+
+        public void setEcbeat(List<Integer> ecbeat) {
+            this.ecbeat = ecbeat;
+        }
+    }
+
+    public static class ConclusionBean {
+        /**
+         * AVB_III : absent
+         * AF : absent
+         * Abnormal : positive
+         * With_Ectopic_Beats : singlet
+         * LongRR : absent
+         * Other : present
+         * Tachycardia : absent
+         * Bradycardia : absent
+         */
+
+        private String AVB_III;//三度房室传导阻滞/室性逸博心律是否可能存在：AVB_III = absent/possible；
+        private String AF;//房颤/房扑专项检测：AF = absent/present/unstable，对于unstable AF，可能合并有预激综合征，应立即予以关注
+        private String Abnormal;//大致正常与否（这里是未见异常与否）：如果上述所有取值都是阴性的，则Abnormal=negative；否则Abnormal=positive。请特别注意，单导心电没有能力判断缺血与否，因此大致正常与否的判断中不包含缺血判断！
+        private String With_Ectopic_Beats;//早搏：With_Ectopic_Beats = absent/singlet/frequent/bigemeny/trigemeny/couplet/triplet，分别表示无早搏/偶见单发早搏/频繁单发早搏/二联律/三联律/成对早搏/三联早搏；
+        private String LongRR;//长间歇有无，严重程度：LongRR = absent/present/severe，其中>3秒为severe，有症状时应立即予以关注，>2秒为present。；
+        private String Other;//可能存在其他异常（如心律不齐等）：Other = absent/present；
+        private String Tachycardia;//心动过速有无、严重程度：Tachycardia = absent/present/severe，严重心动过速应立即予以关注，一般心动过速在睡眠或者静息条件下应予以关注。注意：严重心动过速的判断与年龄、性别有关，请尽量在请求中提供准确年龄age、性别sex信息；
+        private String Bradycardia;//心动过缓有无、严重程度：Bradycardia = absent/present/severe，严重心动过缓应立即予以关注，睡眠与非睡眠状态心动过缓判断有所区别，请尽量提供患者测量时activity；
+
+        public String getAVB_III() {
+            return AVB_III;
+        }
+
+        public void setAVB_III(String AVB_III) {
+            this.AVB_III = AVB_III;
+        }
+
+        public String getAF() {
+            return AF;
+        }
+
+        public void setAF(String AF) {
+            this.AF = AF;
+        }
+
+        public String getAbnormal() {
+            return Abnormal;
+        }
+
+        public void setAbnormal(String Abnormal) {
+            this.Abnormal = Abnormal;
+        }
+
+        public String getWith_Ectopic_Beats() {
+            return With_Ectopic_Beats;
+        }
+
+        public void setWith_Ectopic_Beats(String With_Ectopic_Beats) {
+            this.With_Ectopic_Beats = With_Ectopic_Beats;
+        }
+
+        public String getLongRR() {
+            return LongRR;
+        }
+
+        public void setLongRR(String LongRR) {
+            this.LongRR = LongRR;
+        }
+
+        public String getOther() {
+            return Other;
+        }
+
+        public void setOther(String Other) {
+            this.Other = Other;
+        }
+
+        public String getTachycardia() {
+            return Tachycardia;
+        }
+
+        public void setTachycardia(String Tachycardia) {
+            this.Tachycardia = Tachycardia;
+        }
+
+        public String getBradycardia() {
+            return Bradycardia;
+        }
+
+        public void setBradycardia(String Bradycardia) {
+            this.Bradycardia = Bradycardia;
+        }
+    }
+}

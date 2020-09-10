@@ -1,0 +1,56 @@
+package com.choicemmed.ichoice.healthcheck.activity.ecg;
+
+import android.view.View;
+
+import com.choicemmed.ichoice.R;
+import com.choicemmed.ichoice.framework.application.IchoiceApplication;
+import com.choicemmed.ichoice.framework.base.BaseActivty;
+import com.choicemmed.ichoice.healthcheck.view.EcgView;
+
+import butterknife.BindView;
+import butterknife.OnClick;
+
+import static com.choicemmed.ichoice.healthcheck.fragment.ecg.EcgMeasureFragment.uncompressA12bEcgData;
+import static com.choicemmed.ichoice.healthcheck.fragment.ecg.EcgMeasureFragment.uncompressP10bEcgData;
+
+
+public class EcgFullChartActivity extends BaseActivty {
+    @BindView(R.id.home_vEcgBarView)
+    EcgView home_vEcgBarView;
+
+    private int[] ecgData;
+
+    @Override
+    protected int contentViewID() {
+        return R.layout.activity_ecg_full_chart;
+    }
+
+    @Override
+    protected void initialize() {
+        setTopTitle(getString(R.string.analysis_results), true);
+        setLeftBtnFinish();
+        setRightBtn(true, R.mipmap.ecg_share, new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+            }
+        });
+
+        if ("A12".equals(IchoiceApplication.type)) {
+            ecgData = uncompressA12bEcgData(IchoiceApplication.ecgData.getEcgData());
+        } else if ("P10".equals(IchoiceApplication.type)) {
+            ecgData = uncompressP10bEcgData(IchoiceApplication.ecgData.getEcgData());
+        }
+        home_vEcgBarView.redrawEcg(ecgData);
+    }
+
+    @OnClick({R.id.ll_full_ecg})
+    public void onClick(View view) {
+        switch (view.getId()) {
+            case R.id.ll_full_ecg:
+                startActivity(EcgFullChartActivity.class);
+                break;
+
+        }
+    }
+}

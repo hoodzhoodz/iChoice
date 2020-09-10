@@ -1,0 +1,129 @@
+package com.choicemmed.ichoice.healthcheck.activity.ecg;
+
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.util.DisplayMetrics;
+import android.view.LayoutInflater;
+import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+
+import com.choicemmed.common.LogUtils;
+import com.choicemmed.ichoice.R;
+import com.choicemmed.ichoice.framework.application.IchoiceApplication;
+import com.choicemmed.ichoice.framework.base.BaseActivty;
+import com.choicemmed.ichoice.healthcheck.view.EcgScaleViewSplit;
+import com.choicemmed.ichoice.healthcheck.view.EcgView;
+import com.choicemmed.ichoice.healthcheck.view.EcgViewSplit;
+import com.choicemmed.ichoice.healthcheck.view.ZoomImageView;
+
+import butterknife.BindView;
+import butterknife.OnClick;
+
+import static com.choicemmed.common.ViewScale.scaleContents;
+import static com.choicemmed.ichoice.healthcheck.fragment.ecg.EcgMeasureFragment.uncompressA12bEcgData;
+import static com.choicemmed.ichoice.healthcheck.fragment.ecg.EcgMeasureFragment.uncompressP10bEcgData;
+
+
+public class EcgFullChartActivity extends BaseActivty {
+    private String TAG = this.getClass().getSimpleName();
+    @BindView(R.id.home_vEcgBarView1)
+    EcgViewSplit home_vEcgBarView1;
+    @BindView(R.id.home_vEcgBarView2)
+    EcgViewSplit home_vEcgBarView2;
+    @BindView(R.id.home_vEcgBarView3)
+    EcgViewSplit home_vEcgBarView3;
+    @BindView(R.id.home_vEcgScaleView1)
+    EcgScaleViewSplit home_vEcgScaleView1;
+    @BindView(R.id.home_vEcgScaleView2)
+    EcgScaleViewSplit home_vEcgScaleView2;
+    @BindView(R.id.home_vEcgScaleView3)
+    EcgScaleViewSplit home_vEcgScaleView3;
+    private int[] ecgData;
+    @BindView(R.id.zooimageView)
+    ZoomImageView zoomImageView;
+    @BindView(R.id.scroll)
+    ScrollView scrollView;
+    @Override
+    protected int contentViewID() {
+        return R.layout.activity_ecg_full_chart;
+    }
+
+    @Override
+    protected void initialize() {
+        setTopTitle(getString(R.string.analysis_results), true);
+        setLeftBtnFinish();
+        home_vEcgScaleView1.setText("0-10s");
+        home_vEcgScaleView2.setText("10-20s");
+        home_vEcgScaleView3.setText("20-30s");
+        if ("A12".equals(IchoiceApplication.type)) {
+            if (!"".equals(IchoiceApplication.ecgData.getEcgData())) {
+                ecgData = uncompressA12bEcgData(IchoiceApplication.ecgData.getEcgData());
+            }
+        } else if ("P10".equals(IchoiceApplication.type)) {
+            ecgData = uncompressP10bEcgData(IchoiceApplication.ecgData.getEcgData());
+        }
+        if ("A12".equals(IchoiceApplication.type)) {
+            if (ecgData.length >= 7500) {
+                int[] one = new int[2500];
+                int[] two = new int[2500];
+                int[] three = new int[2500];
+                System.arraycopy(ecgData, 0, one, 0, 2500);
+                System.arraycopy(ecgData, 2500, two, 0, 2500);
+                System.arraycopy(ecgData, 5000, three, 0, 2500);
+                home_vEcgBarView1.redrawEcg(one);
+                home_vEcgBarView2.redrawEcg(two);
+                home_vEcgBarView3.redrawEcg(three);
+            }
+        } else if ("P10".equals(IchoiceApplication.type)) {
+            if (ecgData.length >= 7500) {
+                int[] ecgData1 = new int[2500];
+                int[] ecgData2 = new int[2500];
+                int[] ecgData3 = new int[ecgData.length - 5000];
+                for (int i = 0; i < ecgData.length; i++) {
+                    if (i < 2500) {
+                        ecgData1[i] = ecgData[i];
+                    } else if (i < 5000) {
+                        ecgData2[i - 2500] = ecgData[i];
+                    } else {
+                        ecgData3[i - 5000] = ecgData[i];
+                    }
+                }
+                home_vEcgBarView1.redrawEcg(ecgData1);
+                home_vEcgBarView2.redrawEcg(ecgData2);
+                home_vEcgBarView3.redrawEcg(ecgData3);
+            }
+
+        }
+
+        Bitmap bitmap = loadBitmapFromView1(this, scrollView);
+        scrollView.setVisibility(View.GONE);
+        zoomImageView.setImageBitmap(bitmap);
+    }
+
+    public static Bitmap loadBitmapFromView1(Context context, View v) {
+        if (v.getMeasuredHeight() > 0) {
+            Bitmap b = Bitmap.createBitmap(v.getWidth(), v.getHeight(), Bitmap.Config.RGB_565);
+            Canvas c = new Canvas(b);
+            v.layout(0, 0, v.getWidth(), v.getHeight());
+            v.draw(c);
+            return b;
+
+        }
+        // if the view was not displayed before the size of it will be zero. its possible to measure it like this
+        if (v.getMeasuredHeight() <= 0) {
+            v.measure(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            Bitmap b = Bitmap.createBitmap(v.getMeasuredWidth(), v.getMeasuredHeight(), Bitmap.Config.ARGB_8888);
+            Canvas c = new Canvas(b);
+            v.layout(0, 0, v.getMeasuredWidth(), v.getMeasuredHeight());
+            v.draw(c);
+            return b;
+        }
+        return null;
+    }
+
+}

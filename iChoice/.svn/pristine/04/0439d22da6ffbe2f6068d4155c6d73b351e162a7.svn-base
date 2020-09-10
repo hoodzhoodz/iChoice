@@ -1,0 +1,18 @@
+package com.choicemmed.ichoice.healthcheck.fragment.ecg;
+
+import com.choicemmed.ichoice.framework.base.BaseFragment;
+
+/**
+ * Created by 117590 on 2020/8/20
+ */
+public class EcgHistoryFragment extends BaseFragment {
+    @Override
+    protected int contentViewID() {
+        return 0;
+    }
+
+    @Override
+    protected void initialize() {
+
+    }
+}

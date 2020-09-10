@@ -1,0 +1,80 @@
+package com.choicemmed.ichoice.healthcheck.fragment.pulseoximeter;
+
+import android.graphics.drawable.ColorDrawable;
+import android.os.Bundle;
+import android.support.v4.app.DialogFragment;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
+
+import com.choicemmed.common.SharePreferenceUtil;
+import com.choicemmed.ichoice.R;
+
+import butterknife.ButterKnife;
+import butterknife.OnClick;
+import butterknife.Unbinder;
+
+import static android.graphics.Color.TRANSPARENT;
+
+
+public class OxWorkingModeDialogFragment extends DialogFragment implements View.OnClickListener {
+
+    private Unbinder mUnbinder;
+
+    public Listerner getListerner() {
+        return listerner;
+    }
+
+    public void setListerner(Listerner listerner) {
+        this.listerner = listerner;
+    }
+
+    private Listerner listerner;
+    public OxWorkingModeDialogFragment() {
+
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        getDialog().requestWindowFeature(Window.FEATURE_NO_TITLE);
+        View view = inflater.inflate(R.layout.dialog_ox_work_mode, container, false);
+        getDialog().getWindow().setBackgroundDrawable(new ColorDrawable(TRANSPARENT));
+        mUnbinder = ButterKnife.bind(this, view);
+        return view;
+    }
+
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+    }
+
+    @OnClick({R.id.bt_real, R.id.bt_point, R.id.cancel})
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.bt_point:
+                SharePreferenceUtil.put(getActivity(), "ox_working_mode", 1);
+                listerner.change();
+                break;
+            case R.id.bt_real:
+                SharePreferenceUtil.put(getActivity(), "ox_working_mode", 2);
+                listerner.change();
+                break;
+            case R.id.cancel:
+                SharePreferenceUtil.put(getActivity(), "ox_working_mode", 1);
+                dismiss();
+
+        }
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        mUnbinder.unbind();
+    }
+
+    public interface Listerner {
+        void change();
+    }
+}

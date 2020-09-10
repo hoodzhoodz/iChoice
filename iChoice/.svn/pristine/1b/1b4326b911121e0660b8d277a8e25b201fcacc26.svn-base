@@ -1,0 +1,394 @@
+package com.choicemmed.ichoice.healthcheck.fragment;
+
+import android.annotation.SuppressLint;
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
+import android.net.Uri;
+import android.os.Bundle;
+import android.support.v4.app.Fragment;
+import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.text.TextUtils;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.choicemmed.common.LogUtils;
+import com.choicemmed.common.ScreenUtils;
+import com.choicemmed.ichoice.R;
+import com.choicemmed.ichoice.framework.application.App;
+import com.choicemmed.ichoice.framework.http.Urls;
+import com.choicemmed.ichoice.healthcheck.activity.ConnectDeviceActivity;
+import com.choicemmed.ichoice.healthcheck.activity.bloodpressure.ResultBpActivity;
+import com.choicemmed.ichoice.healthcheck.activity.pulseoximeter.C208sMeasureActivity;
+import com.choicemmed.ichoice.healthcheck.activity.wristpulse.DevicesSelectActivity;
+import com.choicemmed.ichoice.healthcheck.activity.wristpulse.InfraredThermometerActivity;
+import com.choicemmed.ichoice.healthcheck.activity.wristpulse.ResultWpoW314Activity;
+import com.choicemmed.ichoice.healthcheck.activity.wristpulse.ResultWpoW628Activity;
+import com.choicemmed.ichoice.healthcheck.adapter.ImagePickerAdapter;
+import com.choicemmed.ichoice.framework.base.BaseFragment;
+import com.choicemmed.ichoice.healthcheck.activity.AddDevicesActivity;
+import com.choicemmed.ichoice.healthcheck.adddevice.activity.DeviceSelectActivity;
+import com.choicemmed.ichoice.healthcheck.db.DeviceDisplayOperation;
+import com.choicemmed.ichoice.healthcheck.db.DeviceOperation;
+import com.choicemmed.ichoice.framework.utils.DevicesType;
+import com.lzy.imagepicker.bean.ImageItem;
+import com.wordplat.easydivider.RecyclerViewGridDivider;
+import com.choicemmed.ichoice.healthcheck.activity.pulseoximeter.ResultPOSpotCheckActivity;
+import java.util.ArrayList;
+import java.util.List;
+
+import butterknife.BindView;
+import pro.choicemmed.datalib.DeviceDisplay;
+import pro.choicemmed.datalib.UserProfileInfo;
+
+import static com.choicemmed.ichoice.framework.utils.DevicesType.Device;
+
+/**
+ * 项目名称：iChoice
+ * 类描述：
+ * 创建人：114100
+ * 创建时间：2019/4/3 15:16
+ * 修改人：114100
+ * 修改时间：2019/4/3 15:16
+ * 修改备注：
+ */
+public class HealthCheckFragment extends BaseFragment implements ImagePickerAdapter.OnRecyclerViewItemClickListener {
+    private static String TAG = "HealthCheckFragment";
+    @BindView(R.id.rv_health_check)
+    RecyclerView recyclerView;
+    private ImagePickerAdapter adapter;
+    private ArrayList<ImageItem> selImageList; //当前选择的所有图片
+    private RecyclerViewGridDivider recyclerViewGridDivider;
+
+
+    public static Fragment getInstance() {
+        Fragment fragment = new HealthCheckFragment();
+        return fragment;
+    }
+
+    @Override
+    protected int contentViewID() {
+        return R.layout.fragment_health_check;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        selImageList.clear();
+        initImagePicker();
+        adapter = new ImagePickerAdapter(getContext(), selImageList);
+        adapter.setOnItemClickListener(this);
+        recyclerView.setAdapter(adapter);
+    }
+
+    @Override
+    protected void initialize() {
+        selImageList = new ArrayList<>();
+        final int margin = ScreenUtils.dpTopx(getContext(), 43);
+        final int size = ScreenUtils.dpTopx(getContext(), 54);
+        recyclerView.setLayoutManager(new GridLayoutManager(getActivity(), 3));
+        recyclerViewGridDivider = new RecyclerViewGridDivider(3, margin, size);
+        recyclerView.addItemDecoration(recyclerViewGridDivider);
+        recyclerView.setHasFixedSize(true);
+
+    }
+
+    private void initImagePicker() {
+        DeviceDisplayOperation deviceDisplayOperation = new DeviceDisplayOperation(getActivity());
+        UserProfileInfo userProfileInfos = App.getInstance().getDaoSession().getUserProfileInfoDao().queryBuilder().unique();
+        List<DeviceDisplay> deviceDisplays = deviceDisplayOperation.queryByUserIds(userProfileInfos.getUserId());
+        if (deviceDisplays == null || deviceDisplays.isEmpty()) {
+            return;
+        }
+        addImageItemList(deviceDisplays.get(0));
+    }
+
+    private void addImageItemList(DeviceDisplay display) {
+        List<ImageItem> bingdingList = new ArrayList<>();
+        List<ImageItem> noBingdingList = new ArrayList<>();
+        if (display.getBloodPressure() == 1) {
+            ImageItem item = new ImageItem();
+            item.setMimeType(DevicesType.DEVICE_BINGDING);
+            item.setName(getActivity().getString(R.string.blood_pressure));
+            bingdingList.add(item);
+        } else {
+            ImageItem item = new ImageItem();
+            item.setMimeType(DevicesType.DEVICE_NO_BINGDING);
+            item.setName(getActivity().getString(R.string.blood_pressure));
+            noBingdingList.add(item);
+        }
+        if (display.getEcg() == 1) {
+            ImageItem item = new ImageItem();
+            item.setMimeType(DevicesType.DEVICE_BINGDING);
+            item.setName(getActivity().getString(R.string.ecg));
+            bingdingList.add(item);
+        } else {
+            ImageItem item = new ImageItem();
+            item.setMimeType(DevicesType.DEVICE_NO_BINGDING);
+            item.setName(getActivity().getString(R.string.ecg));
+            noBingdingList.add(item);
+        }
+        if (display.getWristPluseOximeter() == 1) {
+            ImageItem item = new ImageItem();
+            item.setMimeType(DevicesType.DEVICE_BINGDING);
+            item.setName(getActivity().getString(R.string.wrist_pulse_oximeter));
+            bingdingList.add(item);
+        } else {
+            ImageItem item = new ImageItem();
+            item.setMimeType(DevicesType.DEVICE_NO_BINGDING);
+            item.setName(getActivity().getString(R.string.wrist_pulse_oximeter));
+            noBingdingList.add(item);
+        }
+        if (display.getPulseOximeter() == 1) {
+            ImageItem item = new ImageItem();
+            item.setMimeType(DevicesType.DEVICE_BINGDING);
+            item.setName(getActivity().getString(R.string.pulse_qximeter));
+            bingdingList.add(item);
+        } else {
+            ImageItem item = new ImageItem();
+            item.setMimeType(DevicesType.DEVICE_NO_BINGDING);
+            item.setName(getActivity().getString(R.string.pulse_qximeter));
+            noBingdingList.add(item);
+        }
+
+        if (display.getThermometer() == 1) {
+            ImageItem item = new ImageItem();
+            item.setMimeType(DevicesType.DEVICE_BINGDING);
+            item.setName(getActivity().getString(R.string.therometer));
+            bingdingList.add(item);
+        } else {
+            ImageItem item = new ImageItem();
+            item.setMimeType(DevicesType.DEVICE_NO_BINGDING);
+            item.setName(getActivity().getString(R.string.therometer));
+            noBingdingList.add(item);
+        }
+
+
+        if (display.getScale() == 1) {
+            ImageItem item = new ImageItem();
+            item.setMimeType(DevicesType.DEVICE_BINGDING);
+            item.setName(getActivity().getString(R.string.scale));
+            bingdingList.add(item);
+        } else {
+            ImageItem item = new ImageItem();
+            item.setMimeType(DevicesType.DEVICE_NO_BINGDING);
+            item.setName(getActivity().getString(R.string.scale));
+            noBingdingList.add(item);
+        }
+        if (display.getFitnessTracker() == 1) {
+            ImageItem item = new ImageItem();
+            item.setMimeType(DevicesType.DEVICE_BINGDING);
+            item.setName(getActivity().getString(R.string.fitness_tracker));
+            bingdingList.add(item);
+        } else {
+            ImageItem item = new ImageItem();
+            item.setMimeType(DevicesType.DEVICE_NO_BINGDING);
+            item.setName(getActivity().getString(R.string.fitness_tracker));
+            noBingdingList.add(item);
+        }
+        selImageList.addAll(bingdingList);
+        ImageItem item = new ImageItem();
+        item.setMimeType(DevicesType.DEVICE_NO_BINGDING);
+        item.setName(getActivity().getString(R.string.hrv));
+        noBingdingList.add(item);
+        selImageList.addAll(noBingdingList);
+
+    }
+
+    @Override
+    public void onItemClick(View view, String name, boolean binding) {
+        LogUtils.d(TAG, "deviceName  " + name + "binding  " + binding);
+        Bundle bundle = new Bundle();
+        DeviceOperation deviceOperation = new DeviceOperation(getContext());
+        if (name.equals(getString(R.string.blood_pressure))) {
+            if (binding) {
+                startActivity(ResultBpActivity.class);
+            } else {
+                bundle.putInt(Device, DevicesType.BloodPressure);
+                startActivity(DevicesSelectActivity.class, bundle);
+            }
+        } else if (name.equals(getString(R.string.therometer))) {
+            if (binding) {
+                startActivity(InfraredThermometerActivity.class);
+            } else {
+                bundle.putInt(Device, DevicesType.Thermometer);
+                startActivity(DevicesSelectActivity.class, bundle);
+            }
+
+        } else if (name.equals(getString(R.string.hrv))) {
+            if (checkPackInfo("com.ichoice.relax")) {
+                openPackage(getActivity(), "com.ichoice.relax");
+            } else {
+
+                View view1 = LayoutInflater.from(getActivity()).inflate(R.layout.tip_dialog_download, null);
+                TextView msg_title = view1.findViewById(R.id.msg_title);
+                msg_title.setText(getString(R.string.download_ichoice_relax));
+                TextView btn_ok = view1.findViewById(R.id.btn_ok);
+                TextView btn_cancel = view1.findViewById(R.id.btn_cancel);
+                final Dialog dialog = new AlertDialog.Builder(getActivity())
+                        .setView(view1)
+                        .create();
+                btn_ok.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        openBrowser(getActivity(), Urls.DownLoadIchoiceRelax);
+                        dialog.dismiss();
+                    }
+                });
+                btn_cancel.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        dialog.dismiss();
+                    }
+                });
+                dialog.show();
+
+//                Toast.makeText(getActivity(), "没有安装" + "", Toast.LENGTH_LONG).show();
+
+
+            }
+
+
+        } else if (name.equals(getString(R.string.wrist_pulse_oximeter))) {
+            if (binding) {
+                String typeName = deviceOperation.queryByDeviceName(App.getAppData().userProfileInfo.getUserId(), DevicesType.WristPluseOximeter);
+                typeName = typeName.substring(typeName.length() - 4);
+                switch (typeName) {
+                    case "14B4":
+                        startActivity(ResultWpoW314Activity.class);
+                        break;
+                    case "W628":
+                        startActivity(ResultWpoW628Activity.class);
+                        break;
+                }
+            } else {
+                bundle.putInt(Device, DevicesType.WristPluseOximeter);
+                startActivity(DevicesSelectActivity.class, bundle);
+            }
+
+        } else if (name.equals((getString(R.string.pulse_qximeter)))) {
+            if (binding) {
+                String typeName = deviceOperation.queryByDeviceName(App.getAppData().userProfileInfo.getUserId(), DevicesType.PulseOximeter);
+                typeName = typeName.substring(typeName.length() - 4);
+                LogUtils.d(TAG, "typeName   " + typeName);
+                if (typeName.contains("208S") || typeName.contains("218") || typeName.contains("228S") || typeName.contains("300I-G")) {
+                    startActivity(C208sMeasureActivity.class);
+                } else {
+                    startActivity(ResultPOSpotCheckActivity.class);
+                }
+            } else {
+                bundle.putInt(Device, DevicesType.PulseOximeter);
+                startActivity(DeviceSelectActivity.class, bundle);
+            }
+        } else {
+            App.singleDialog(getString(R.string.stay), getActivity());
+        }
+
+        {
+
+        }
+
+    }
+
+
+    public static Intent getAppOpenIntentByPackageName(Context context, String packageName) {
+        //Activity完整名
+        String mainAct = null;
+        //根据包名寻找
+        PackageManager pkgMag = context.getPackageManager();
+        Intent intent = new Intent(Intent.ACTION_MAIN);
+        intent.addCategory(Intent.CATEGORY_LAUNCHER);
+        intent.setFlags(Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED | Intent.FLAG_ACTIVITY_NEW_TASK);
+
+        @SuppressLint("WrongConstant")
+        List<ResolveInfo> list = pkgMag.queryIntentActivities(intent,
+                PackageManager.GET_ACTIVITIES);
+        for (int i = 0; i < list.size(); i++) {
+            ResolveInfo info = list.get(i);
+            if (info.activityInfo.packageName.equals(packageName)) {
+                mainAct = info.activityInfo.name;
+                break;
+            }
+        }
+        if (TextUtils.isEmpty(mainAct)) {
+            return null;
+        }
+        intent.setComponent(new ComponentName(packageName, mainAct));
+        return intent;
+    }
+
+    public static Context getPackageContext(Context context, String packageName) {
+        Context pkgContext = null;
+        if (context.getPackageName().equals(packageName)) {
+            pkgContext = context;
+        } else {
+            // 创建第三方应用的上下文环境
+            try {
+                pkgContext = context.createPackageContext(packageName,
+                        Context.CONTEXT_IGNORE_SECURITY
+                                | Context.CONTEXT_INCLUDE_CODE);
+            } catch (PackageManager.NameNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
+        return pkgContext;
+    }
+
+    public static boolean openPackage(Context context, String packageName) {
+        Context pkgContext = getPackageContext(context, packageName);
+        Intent intent = getAppOpenIntentByPackageName(context, packageName);
+        if (pkgContext != null && intent != null) {
+            pkgContext.startActivity(intent);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 检查包是否存在
+     *
+     * @param packname
+     * @return
+     */
+    private boolean checkPackInfo(String packname) {
+        PackageInfo packageInfo = null;
+        try {
+            packageInfo = getActivity().getPackageManager().getPackageInfo(packname, 0);
+        } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+        }
+        return packageInfo != null;
+    }
+
+    /**
+     * 调用第三方浏览器打开
+     *
+     * @param context
+     * @param url     要浏览的资源地址
+     */
+
+    public static void openBrowser(Context context, String url) {
+        final Intent intent = new Intent();
+        intent.setAction(Intent.ACTION_VIEW);
+        intent.setData(Uri.parse(url));
+        if (intent.resolveActivity(context.getPackageManager()) != null) {
+            context.startActivity(Intent.createChooser(intent, context.getText(R.string.select_browser)));
+
+        } else {
+            Toast.makeText(context.getApplicationContext(), context.getText(R.string.download_browser), Toast.LENGTH_SHORT).show();
+
+        }
+
+    }
+
+}

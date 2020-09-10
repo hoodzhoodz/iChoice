@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".healthcheck.activity.FailureActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <ImageView
+            android:layout_width="220dp"
+            android:layout_height="220dp"
+            android:src="@mipmap/connect_failure" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="26dp"
+            android:text="@string/connect_failure_thermometer"
+            android:textAlignment="center"
+            android:textColor="@color/color_000000"
+            android:id="@+id/tv_fail" />
+
+        <Button
+            android:id="@+id/btn_connect"
+            style="@style/style_button"
+            android:layout_marginTop="39dp"
+            android:layout_marginLeft="40dp"
+            android:layout_marginRight="40dp"
+            android:background="@drawable/selector_btn_positive"
+            android:text="@string/retry" />
+
+    </LinearLayout>
+</android.support.constraint.ConstraintLayout>

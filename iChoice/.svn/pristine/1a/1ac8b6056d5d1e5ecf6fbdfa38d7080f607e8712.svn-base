@@ -1,0 +1,146 @@
+package pro.choicemmed.datalib;
+
+
+import org.greenrobot.greendao.annotation.Entity;
+import org.greenrobot.greendao.annotation.Id;
+import org.greenrobot.greendao.annotation.Generated;
+
+@Entity
+public class EcgData {
+    @Id
+    private String uuid;
+    private String userId = "";
+    private String startDate;
+    private String endDate;
+    private String measureTime;
+    private int upLoadFlag;
+    private String ecgTime;//原始数据（其中包括测量时间，但是还有其他数据）
+    private String ecgData;//ecg数据
+    private String lastUpdateTime;
+    private int decodeBpm;//心率
+    private String locale;//生成pdf报告的语言
+    private String analysisresult;
+    private int ecgResult;// 没有分析默认0 正常存1  异常存2
+
+    @Generated(hash = 1459475886)
+    public EcgData(String uuid, String userId, String startDate, String endDate,
+                   String measureTime, int upLoadFlag, String ecgTime, String ecgData,
+                   String lastUpdateTime, int decodeBpm, String locale,
+                   String analysisresult, int ecgResult) {
+        this.uuid = uuid;
+        this.userId = userId;
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.measureTime = measureTime;
+        this.upLoadFlag = upLoadFlag;
+        this.ecgTime = ecgTime;
+        this.ecgData = ecgData;
+        this.lastUpdateTime = lastUpdateTime;
+        this.decodeBpm = decodeBpm;
+        this.locale = locale;
+        this.analysisresult = analysisresult;
+        this.ecgResult = ecgResult;
+    }
+    @Generated(hash = 1356996479)
+    public EcgData() {
+    }
+    public String getUuid() {
+        return this.uuid;
+    }
+    public void setUuid(String uuid) {
+        this.uuid = uuid;
+    }
+    public String getUserId() {
+        return this.userId;
+    }
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+    public String getStartDate() {
+        return this.startDate;
+    }
+    public void setStartDate(String startDate) {
+        this.startDate = startDate;
+    }
+    public String getEndDate() {
+        return this.endDate;
+    }
+    public void setEndDate(String endDate) {
+        this.endDate = endDate;
+    }
+    public String getMeasureTime() {
+        return this.measureTime;
+    }
+    public void setMeasureTime(String measureTime) {
+        this.measureTime = measureTime;
+    }
+    public int getUpLoadFlag() {
+        return this.upLoadFlag;
+    }
+    public void setUpLoadFlag(int upLoadFlag) {
+        this.upLoadFlag = upLoadFlag;
+    }
+    public String getEcgTime() {
+        return this.ecgTime;
+    }
+    public void setEcgTime(String ecgTime) {
+        this.ecgTime = ecgTime;
+    }
+    public String getEcgData() {
+        return this.ecgData;
+    }
+    public void setEcgData(String ecgData) {
+        this.ecgData = ecgData;
+    }
+    public String getLastUpdateTime() {
+        return this.lastUpdateTime;
+    }
+    public void setLastUpdateTime(String lastUpdateTime) {
+        this.lastUpdateTime = lastUpdateTime;
+    }
+    public int getDecodeBpm() {
+        return this.decodeBpm;
+    }
+    public void setDecodeBpm(int decodeBpm) {
+        this.decodeBpm = decodeBpm;
+    }
+    public String getLocale() {
+        return this.locale;
+    }
+    public void setLocale(String locale) {
+        this.locale = locale;
+    }
+    public String getAnalysisresult() {
+        return this.analysisresult;
+    }
+    public void setAnalysisresult(String analysisresult) {
+        this.analysisresult = analysisresult;
+    }
+
+    public int getEcgResult() {
+        return this.ecgResult;
+    }
+
+    public void setEcgResult(int ecgResult) {
+        this.ecgResult = ecgResult;
+    }
+
+    @Override
+    public String toString() {
+        return "EcgData{" +
+                "uuid='" + uuid + '\'' +
+                ", userId='" + userId + '\'' +
+                ", startDate='" + startDate + '\'' +
+                ", endDate='" + endDate + '\'' +
+                ", measureTime='" + measureTime + '\'' +
+                ", upLoadFlag=" + upLoadFlag +
+                ", ecgTime='" + ecgTime + '\'' +
+                ", ecgData='" + ecgData + '\'' +
+                ", lastUpdateTime='" + lastUpdateTime + '\'' +
+                ", decodeBpm=" + decodeBpm +
+                ", locale='" + locale + '\'' +
+                ", analysisresult='" + analysisresult + '\'' +
+                ", ecgResult=" + ecgResult +
+                '}';
+    }
+}

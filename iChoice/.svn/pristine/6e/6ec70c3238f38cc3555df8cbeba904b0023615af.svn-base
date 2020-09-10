@@ -1,0 +1,19 @@
+package com.choicemmed.ichoice.healthcheck.fragment.ecg;
+
+import com.choicemmed.ichoice.R;
+import com.choicemmed.ichoice.framework.base.BaseFragment;
+
+/**
+ * Created by 117590 on 2020/8/20
+ */
+public class EcgMeasureFragment extends BaseFragment {
+    @Override
+    protected int contentViewID() {
+        return R.layout.fragment_ecg_measure;
+    }
+
+    @Override
+    protected void initialize() {
+
+    }
+}

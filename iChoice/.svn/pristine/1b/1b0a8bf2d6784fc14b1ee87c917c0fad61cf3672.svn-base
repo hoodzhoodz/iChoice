@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">Blelibrary</string>
+
+    <!--error msg-->
+    <string name="error_bluetooth_not_supported">Bluetooth not supported</string>
+    <string name="error_ble_not_supported">BLE not supported</string>
+    <string name="error_bluetooth_not_open">Please check whether the bluetooth of the device is turned on or not</string>
+    <string name="error_connect_timeout">Connect timeout</string>
+    <!--P10b-->
+    <string name="error_scan_timeout">Can not find the device, please check whether the device is turned on or not</string>
+    <string name="error_null_device_data">no date in device</string>
+    <string name="error_device_exception">device exception, Retry</string>
+
+</resources>

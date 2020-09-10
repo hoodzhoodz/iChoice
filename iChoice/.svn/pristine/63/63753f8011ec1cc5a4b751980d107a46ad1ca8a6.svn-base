@@ -1,0 +1,7 @@
+package com.choice.c208sdkblelibrary.base;
+
+public enum DeviceType {
+    MD300C208,
+    C208S,
+    MD300C218R
+}

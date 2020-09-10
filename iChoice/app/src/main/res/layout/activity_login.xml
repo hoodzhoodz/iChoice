@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:paddingLeft="@dimen/dp_34"
+    android:paddingRight="@dimen/dp_34">
+
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/dp_75"
+        android:src="@mipmap/ic_login" />
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/dp_80">
+
+        <ImageView
+            android:id="@+id/img_username"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_marginRight="@dimen/dp_9"
+            android:src="@mipmap/ic_username" />
+
+        <android.support.design.widget.TextInputLayout
+            android:id="@+id/input_username"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+
+            android:layout_toRightOf="@+id/img_username">
+
+            <EditText
+                android:id="@+id/et_login_user"
+                style="@style/style_register_et"
+                android:singleLine="true"
+                android:hint="@string/user_name" />
+        </android.support.design.widget.TextInputLayout>
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/dp_32">
+
+        <ImageView
+            android:id="@+id/img_password"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_marginRight="@dimen/dp_9"
+            android:src="@mipmap/ic_password" />
+
+        <android.support.design.widget.TextInputLayout
+            android:id="@+id/input_password"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_toRightOf="@+id/img_password"
+            app:passwordToggleDrawable="@drawable/selector_passwod"
+            app:passwordToggleEnabled="true">
+
+            <EditText
+                android:id="@+id/et_login_password"
+                style="@style/style_register_et"
+                android:hint="@string/password"
+                android:inputType="textPassword" />
+        </android.support.design.widget.TextInputLayout>
+    </RelativeLayout>
+
+    <TextView
+        android:id="@+id/tv_forget_pwd"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="right"
+        android:padding="@dimen/dp_9"
+        android:text="@string/forget_password"
+        android:textColor="@color/color_04d9b4"
+        android:textSize="@dimen/sp_13" />
+
+    <Button
+        android:id="@+id/btn_login"
+        style="@style/style_button"
+        android:layout_marginTop="@dimen/dp_25"
+        android:background="@drawable/selector_btn_positive"
+        android:text="@string/login" />
+
+    <Button
+        android:id="@+id/btn_login_register"
+        style="@style/style_button"
+        android:layout_marginTop="@dimen/dp_9"
+        android:background="@drawable/selector_btn_positive"
+        android:text="@string/register" />
+</LinearLayout>

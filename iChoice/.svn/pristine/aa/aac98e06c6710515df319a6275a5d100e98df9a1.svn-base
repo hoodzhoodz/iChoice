@@ -1,0 +1,325 @@
+package com.choicemmed.ichoice.healthcheck.fragment.wristpulse;
+
+
+import android.content.BroadcastReceiver;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.ServiceConnection;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.IBinder;
+import android.support.v4.app.Fragment;
+import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.TextView;
+
+import com.choicemmed.common.FormatUtils;
+import com.choicemmed.common.LogUtils;
+import com.choicemmed.common.ThreadManager;
+import com.choicemmed.ichoice.R;
+import com.choicemmed.ichoice.framework.application.App;
+import com.choicemmed.ichoice.framework.base.BaseFragment;
+import com.choicemmed.ichoice.framework.utils.MethodsUtils;
+import com.choicemmed.ichoice.framework.utils.ORECalculate;
+import com.choicemmed.ichoice.framework.utils.PermissionsUtils;
+import com.choicemmed.ichoice.framework.view.IBaseView;
+import com.choicemmed.ichoice.healthcheck.activity.wristpulse.ReportWpoActivity;
+import com.choicemmed.ichoice.healthcheck.db.W628Operation;
+import com.choicemmed.ichoice.healthcheck.presenter.WristDataPresenter;
+import com.choicemmed.ichoice.healthcheck.service.W628BleConService;
+
+import java.time.Duration;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
+
+import butterknife.BindView;
+import butterknife.OnClick;
+import pro.choicemmed.datalib.W628Data;
+
+/**
+ * A simple {@link Fragment} subclass.
+ */
+public class W628SleepFragment extends BaseFragment implements IBaseView {
+    public static final String TAG = "W628SleepFragment";
+    @BindView(R.id.sleep_time)
+    TextView sleep_times;
+    @BindView(R.id.desaturation_event)
+    TextView desaturation_event;
+    @BindView(R.id.start_time)
+    TextView start_time;
+    @BindView(R.id.end_time)
+    TextView end_time;
+    @BindView(R.id.image_normal)
+    ImageView image_normal;
+    @BindView(R.id.image_mild)
+    ImageView image_mild;
+    @BindView(R.id.image_moderate)
+    ImageView image_moderate;
+    @BindView(R.id.image_severe)
+    ImageView image_severe;
+    @BindView(R.id.btn_sync)
+    Button btn_sync;
+    private int oreTimes;
+    private int hours;
+    private int minute;
+    private int seconds;
+    private int minSpo;
+    private float draw_Ahi = 0;
+    private boolean upLoadSuccess;
+//    private ProgressDialog progressDialog = null;
+private UpLoadDialogFragment dialogFragment;
+    private W628Data w628Data;
+    private W628Operation w628Operation = new W628Operation(getContext());
+    private Handler mHandler = new Handler();
+    private W628BleConService.ScanBleBinder binder;
+    private WristDataPresenter mWristDataPresenter;
+    private ServiceConnection bleService = new ServiceConnection(){
+
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            binder = (W628BleConService.ScanBleBinder) service;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+
+        }
+    };
+
+    private BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            LogUtils.d(TAG, intent.getAction());
+            if (intent.getAction().equals("W628BleConService:onRecordDataResponse")) {
+                refreshData();
+                upLoadSleepData();
+            } else if (intent.getAction().equals("W628BleConService:connectFail")) {
+                if (dialogFragment != null && !dialogFragment.isAnimation()) {
+                    dialogFragment.linkState(false);
+                }
+            } else if (intent.getAction().equals("W628BleConService:onDisconnected")) {
+                if (dialogFragment != null && !dialogFragment.isAnimation()) {
+                    if (upLoadSuccess) {
+                        dialogFragment.linkState(true);
+                    } else {
+                        dialogFragment.linkState(false);
+                    }
+                }
+            } else if (intent.getAction().equals("W628BleConService:syncSuccess")) {
+                upLoadSuccess = true;
+            } else if (intent.getAction().equals("resetState")) {
+                btn_sync.setEnabled(true);
+            }
+        }
+    };
+
+
+    private void upLoadSleepData() {
+        ThreadManager.execute(new Runnable() {
+            @Override
+            public void run() {
+                searchUploadData();
+            }
+        });
+
+    }
+
+    private void searchUploadData() {
+        try {
+            List<W628Data> recordHistory = w628Operation.queryUpLoadFalse();
+            if (recordHistory == null || recordHistory.isEmpty()) {
+                return;
+            }
+            upLoadData(recordHistory);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void upLoadData(List<W628Data> recordHistory) {
+        for (W628Data record: recordHistory){
+            mWristDataPresenter.sendWristDataRequest(record.getAccountKey(), record.getUuid(), record.getStartDate(), record.getEndDate(), record.getSeries(), 1);
+        }
+
+    }
+
+    private void refreshData() {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(new Date());
+        w628Data = w628Operation.queryByNow(App.getAppData().userProfileInfo.getUserId());
+        if (w628Data == null){
+            return;
+        }
+        start_time.setText(w628Data.getStartDate());
+        end_time.setText(w628Data.getEndDate());
+        Date startDate = FormatUtils.parseDate(w628Data.getStartDate(), FormatUtils.sleep_DbDateTime);
+        Date endDate = FormatUtils.parseDate(w628Data.getEndDate(), FormatUtils.sleep_DbDateTime);
+        if (startDate != null && endDate != null) {
+//            long seconds = Duration.between(startDate.getTime(), endDate.getTime()).getSeconds();
+            hours = (int) ((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60));
+            minute = (int) ((endDate.getTime() - startDate.getTime()) / (1000 * 60) % 60);
+            seconds = (int) ((endDate.getTime() - startDate.getTime()) / (1000) % 60);
+        }
+        oreTimes = ORECalculate.oreCountTimes(w628Data.getSeries());
+        draw_Ahi = (int) (oreTimes * 60 * 60 * 1000 / (endDate.getTime() - startDate.getTime()));
+
+//        if (hours == 0 && seconds != 0) {
+//            draw_Ahi = (oreTimes / (minute / (float) 60));
+//        } else if (hours != 0) {
+//            draw_Ahi = (float) oreTimes / hours;
+//        }
+        minSpo = ORECalculate.getMinSpo(w628Data.getSeries());
+        oreLevel(draw_Ahi, minSpo);
+        sleep_times.setText(hours + ":" + minute);
+        desaturation_event.setText(oreTimes+"");
+//        Log.d(TAG, "endDate.getTime() "+startDate.getTime()+"\n"+"endDate.getTime() "+endDate.getTime()+"\n"+(int)(endDate.getTime() - startDate.getTime()));
+    }
+
+    private void oreLevel(float ahi, int minOl) {
+        if (ahi > 30 || minOl < 80) {
+            //重度
+            image_normal.setVisibility(View.GONE);
+            image_mild.setVisibility(View.GONE);
+            image_moderate.setVisibility(View.GONE);
+            image_severe.setVisibility(View.VISIBLE);
+
+        } else if ((ahi > 15 && ahi <= 30) || (minOl >= 80 && minOl < 85)) {
+            //中度
+            image_severe.setVisibility(View.GONE);
+            image_normal.setVisibility(View.GONE);
+            image_mild.setVisibility(View.GONE);
+            image_moderate.setVisibility(View.VISIBLE);
+        } else if ((ahi >= 5 && ahi <= 15) || (minOl >= 85 && minOl <= 90)) {
+            //轻度
+            image_severe.setVisibility(View.GONE);
+            image_normal.setVisibility(View.GONE);
+            image_moderate.setVisibility(View.GONE);
+            image_mild.setVisibility(View.VISIBLE);
+        }else if (ahi < 5 || minOl > 90){
+            //正常
+            image_severe.setVisibility(View.GONE);
+            image_mild.setVisibility(View.GONE);
+            image_moderate.setVisibility(View.GONE);
+            image_normal.setVisibility(View.VISIBLE);
+        }
+    }
+
+
+
+
+    @Override
+    protected int contentViewID() {
+        return R.layout.fragment_wpo_sleep;
+    }
+
+    @Override
+    protected void initialize() {
+        mWristDataPresenter = new WristDataPresenter(getContext(),this);
+        try {
+            IntentFilter intentFilter = new IntentFilter("W628BleConService:onRecordDataResponse");
+            intentFilter.addAction("W628BleConService:connectFail");
+            intentFilter.addAction("W628BleConService:onDisconnected");
+            intentFilter.addAction("W628BleConService:syncSuccess");
+            intentFilter.addAction("resetState");
+            getActivity().registerReceiver(broadcastReceiver,intentFilter);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        refreshData();
+        upLoadSleepData();
+
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        try {
+            getActivity().bindService(new Intent(getContext(), W628BleConService.class), bleService, Context.BIND_AUTO_CREATE);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void onSuccess() {
+        Log.d(TAG, "onSuccess: 上传成功");
+    }
+
+    @Override
+    public void onError(String msg) {
+        Log.d(TAG, "onError: 上传失败"+ msg);
+    }
+
+    @OnClick({R.id.btn_sync,R.id.btn_report})
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.btn_sync:
+                if (!PermissionsUtils.isNetworkConnected(getContext())) {
+                    MethodsUtils.showErrorTip(getActivity(),getString(R.string.no_signal));
+                    return;
+                }
+                if (!PermissionsUtils.isBluetoothPermission(getContext())) {
+                    MethodsUtils.showErrorTip(getActivity(),getString(R.string.not_bluetooth));
+                    return;
+                }
+                dialogFragment = new UpLoadDialogFragment();
+                dialogFragment.setCancelable(false);
+                dialogFragment.show(getFragmentManager(), TAG);
+
+                new Timer().schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        binder.onSyncData();
+                    }
+                }, 1000);
+                upLoadSuccess = false;
+                btn_sync.setEnabled(false);
+                LogUtils.d(TAG, "btn_sync "+"false");
+//                progressDialog = ProgressDialog.show(getContext(), "", getString(R.string.syning), true);
+
+                break;
+            case R.id.btn_report:
+                if (!PermissionsUtils.isNetworkConnected(getContext())) {
+                    MethodsUtils.showErrorTip(getActivity(),getString(R.string.no_signal));
+                    return;
+                }
+                if (w628Data == null){
+                    MethodsUtils.showErrorTip(getContext(),getString(R.string.no_data));
+                    return;
+                }
+                Bundle bundle = new Bundle();
+                bundle.putString("TYPE","W628");
+                bundle.putString("UUID",w628Data.getUuid());
+                LogUtils.d(TAG, w628Data.toString());
+                startActivity(ReportWpoActivity.class, bundle);
+                break;
+            default:
+        }
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        binder.onRealTimeEnd();
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        getActivity().unregisterReceiver(broadcastReceiver);
+        mHandler.removeCallbacks(null);
+        try {
+            binder.cancelConnect();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        getActivity().unbindService(bleService);
+    }
+}

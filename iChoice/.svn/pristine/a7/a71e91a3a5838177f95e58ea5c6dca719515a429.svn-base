@@ -1,0 +1,177 @@
+package com.choicemmed.ichoice.initalization.activity;
+
+import android.app.ProgressDialog;
+import android.os.Handler;
+import android.support.design.widget.TextInputLayout;
+import android.text.TextUtils;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
+
+import com.choicemmed.common.FormatUtils;
+import com.choicemmed.common.IdcardUtils;
+import com.choicemmed.common.UuidUtils;
+import com.choicemmed.ichoice.R;
+import com.choicemmed.ichoice.framework.application.IchoiceApplication;
+import com.choicemmed.ichoice.framework.base.BaseActivty;
+import com.choicemmed.ichoice.framework.utils.JudgeUtils;
+import com.choicemmed.ichoice.framework.utils.MethodsUtils;
+import com.choicemmed.ichoice.framework.utils.PermissionsUtils;
+import com.choicemmed.ichoice.framework.utils.StatusBarUtils;
+import com.choicemmed.ichoice.healthcheck.db.DeviceDisplayOperation;
+import com.choicemmed.ichoice.initalization.presenter.impl.LoginPresenterImpl;
+import com.choicemmed.ichoice.initalization.view.ILoginView;
+
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+
+import butterknife.BindView;
+import butterknife.OnClick;
+import pro.choicemmed.datalib.DeviceDisplay;
+
+/**
+ * Created by gaofang on 2019/1/15.
+ */
+
+public class LoginActivity extends BaseActivty implements ILoginView {
+    @BindView(R.id.input_username)
+    TextInputLayout inputUserName;
+    @BindView(R.id.input_password)
+    TextInputLayout inputPassWord;
+    @BindView(R.id.tv_forget_pwd)
+    TextView tvForgetPwd;
+    @BindView(R.id.btn_login)
+    Button btnLogin;
+    @BindView(R.id.btn_login_register)
+    Button btnRegister;
+    @BindView(R.id.et_login_user)
+    EditText etUser;
+    @BindView(R.id.et_login_password)
+    EditText etPassword;
+    private ProgressDialog progressDialog = null;
+    private LoginPresenterImpl loginPresenter;
+    Handler handler = new Handler();
+    private long mLastClickTime = 0;
+    public static final long TIME_INTERVAL = 2000L;
+    @Override
+    protected int contentViewID() {
+        return R.layout.activity_login;
+    }
+
+    @Override
+    protected void initialize() {
+        setTopTitle("", false);
+        StatusBarUtils.setLightMode(LoginActivity.this);
+        loginPresenter = new LoginPresenterImpl(this,this);
+
+    }
+
+    @OnClick({R.id.tv_forget_pwd, R.id.btn_login, R.id.btn_login_register})
+    public void OnClick(View v) {
+        switch (v.getId()) {
+            case R.id.tv_forget_pwd:
+                startActivity(ForgetUserNameActivity.class);
+                break;
+            case R.id.btn_login:
+                long nowTime = System.currentTimeMillis();
+                if (nowTime - mLastClickTime > TIME_INTERVAL) {
+                    loginNext();
+                    mLastClickTime = nowTime;
+                }
+                break;
+            case R.id.btn_login_register:
+                startActivity(RegisterActivity.class);
+                break;
+            default:
+                break;
+        }
+    }
+    private void loginNext() {
+        String language = Locale.getDefault().getLanguage();
+        if (language.contains("zh") && !(IdcardUtils.isMobileNO(etUser.getText().toString().trim()) || JudgeUtils.isEmail(etUser.getText().toString().trim()))) {
+            MethodsUtils.showErrorTip(this, getString(R.string.tip_email_incorrect));
+            return;
+        } else if (!language.contains("zh") && !JudgeUtils.isEmail(etUser.getText().toString().trim())) {
+            MethodsUtils.showErrorTip(this, getString(R.string.tip_email_incorrect));
+            return;
+        }
+        if (!JudgeUtils.isPassword(etPassword.getText().toString().trim())){
+            MethodsUtils.showErrorTip(this,getString(R.string.tip_password_not));
+            return;
+        }
+
+        if (!PermissionsUtils.isNetworkConnected(this)) {
+            MethodsUtils.showErrorTip(this,getString(R.string.no_signal));
+            return;
+        }
+
+        if (!TextUtils.isEmpty(etUser.getText()) && !TextUtils.isEmpty(etPassword.getText())){
+            progressDialog = ProgressDialog.show(LoginActivity.this, "", getString(R.string.tip_logging), true);
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    if (progressDialog.isShowing()){
+                        progressDialog.dismiss();
+                    }
+                }
+            }, 15000);
+            loginPresenter.sendLoginRequest(etUser.getText().toString().trim(),etPassword.getText().toString().trim());
+        }else {
+            MethodsUtils.showErrorTip(this,getString(R.string.tip_empty));
+        }
+    }
+
+
+
+
+    @Override
+    public void onLoginSuccess(String token) {
+        progressDialog.dismiss();
+        loginPresenter.getetUserProfile(token);
+
+    }
+
+    @Override
+    public void onLoginError(String msg) {
+        progressDialog.dismiss();
+        String message = msg;
+        if (message.contains("password is incorrect")) {
+            message = getString(R.string.password_is_incorrect);
+        } else if (message.contains("Email address does not exist")) {
+            message = getString(R.string.Email_address_does_not_exist);
+        }
+        MethodsUtils.showErrorTip(this, message);
+
+
+    }
+
+    @Override
+    public void onUserProfileSuccess() {
+        //        第一次登录默认初始话 设备数据表
+        DeviceDisplayOperation deviceDisplayOperation = new DeviceDisplayOperation(mContext);
+        List<DeviceDisplay> deviceDisplays = deviceDisplayOperation.queryByUserIds(IchoiceApplication.getAppData().userProfileInfo.getUserId() + "");
+        if (deviceDisplays.isEmpty()) {
+            DeviceDisplay deviceDisplay = new DeviceDisplay();
+            deviceDisplay.setUserId(IchoiceApplication.getAppData().userProfileInfo.getUserId());
+            deviceDisplay.setCreateTime(FormatUtils.getDateTimeString(new Date(), FormatUtils.template_DbDateTime));
+            deviceDisplay.setLastUpdateTime(FormatUtils.getDateTimeString(new Date(), FormatUtils.template_DbDateTime));
+            deviceDisplay.setID(UuidUtils.getUuid());
+            deviceDisplayOperation.insert(deviceDisplay);
+        }
+        startActivity(MainActivity.class);
+        finish();
+    }
+
+    @Override
+    public void onUserProfileError(String msg) {
+
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        handler.removeCallbacksAndMessages(null);
+    }
+}

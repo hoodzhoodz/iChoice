@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Common</string>
+    <string name="ble_adapter_not_available">Bluetooth adapter not available</string>
+    <string name="ble_not_supported">Bluetooth not supported</string>
+    <string name="ble_not_turned_on">Bluetooth device is not turned on</string>
+
+
+</resources>

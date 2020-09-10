@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingLeft="@dimen/dp_34"
+    android:paddingRight="@dimen/dp_34"
+    android:orientation="vertical">
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/dp_85">
+
+        <ImageView
+            android:id="@+id/img_code"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_marginRight="@dimen/dp_9"
+            android:src="@mipmap/ic_validate_code" />
+
+        <android.support.design.widget.TextInputLayout
+            android:id="@+id/input_code"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_toRightOf="@+id/img_code">
+
+            <EditText
+                style="@style/style_register_et"
+                android:singleLine="true"
+                android:digits="0123456789"
+                android:maxLength="6"
+                android:hint="@string/validate_code" />
+        </android.support.design.widget.TextInputLayout>
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/dp_32">
+
+        <ImageView
+            android:id="@+id/img_new_pwd"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_marginRight="@dimen/dp_9"
+            android:src="@mipmap/ic_password" />
+
+
+        <android.support.design.widget.TextInputLayout
+            android:id="@+id/input_new_pwd"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            app:passwordToggleDrawable = "@drawable/selector_passwod"
+            app:passwordToggleEnabled = "true"
+            android:layout_toRightOf="@+id/img_new_pwd">
+
+            <EditText
+                android:id="@+id/new_Edit_pwd"
+                style="@style/style_register_et"
+                android:maxLength="16"
+                android:inputType="textPassword"
+                android:hint="@string/new_password" />
+        </android.support.design.widget.TextInputLayout>
+    </RelativeLayout>
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/dp_32">
+
+        <ImageView
+            android:id="@+id/img_confirm_pwd"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_marginRight="@dimen/dp_9"
+            android:src="@mipmap/ic_password" />
+
+
+        <android.support.design.widget.TextInputLayout
+            android:id="@+id/input_confirm_pwd"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            app:passwordToggleDrawable = "@drawable/selector_passwod"
+            app:passwordToggleEnabled = "true"
+            android:layout_toRightOf="@+id/img_confirm_pwd">
+
+            <EditText
+                style="@style/style_register_et"
+                android:maxLength="16"
+                android:inputType="textPassword"
+                android:hint="@string/confirm_password" />
+        </android.support.design.widget.TextInputLayout>
+    </RelativeLayout>
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:layout_marginTop="@dimen/dp_90"
+        android:textColor="@color/color_414141"
+        android:textSize="@dimen/sp_12"
+        android:text="@string/forget_pwd_tip"/>
+    <Button
+        android:id="@+id/btn_pwd_commit"
+        style="@style/style_button"
+        android:layout_marginTop="@dimen/dp_17"
+        android:text="@string/ok"
+        android:background="@drawable/selector_btn_positive"/>
+
+</LinearLayout>

@@ -1,0 +1,107 @@
+package com.choicemmed.ichoice.healthcheck.db;
+
+import android.content.Context;
+import com.choicemmed.ichoice.framework.base.BaseDb;
+
+import java.util.List;
+
+import pro.choicemmed.datalib.Cbp1k1Data;
+import pro.choicemmed.datalib.Cbp1k1DataDao;
+
+/**
+ * @author Created by Jiang nan on 2019/11/21 10:20.
+ * @description
+ **/
+public class Cbp1k1Operation extends BaseDb {
+    private static final String TAG = Cbp1k1Operation.class.getSimpleName();
+    private Context context;
+    public Cbp1k1Operation(Context context) {
+        dao = getDaoSession(context).getCbp1k1DataDao();
+        this.context = context;
+    }
+
+    public List<Cbp1k1Data> queryByUserId(String date, String userId, int offset, int rows) {
+        List<Cbp1k1Data> cbp1k1DataList = dao.queryBuilder()
+                .where(Cbp1k1DataDao.Properties.UserId.eq(userId), Cbp1k1DataDao.Properties.MeasureDateTime.like(date + "%"))
+                .orderDesc(Cbp1k1DataDao.Properties.MeasureDateTime)
+                .offset(offset)
+                .limit(rows)
+                .build()
+                .list();
+        return cbp1k1DataList;
+    }
+
+    public List<Cbp1k1Data> queryById(String uuid) {
+        return   dao.queryBuilder().where(Cbp1k1DataDao.Properties.Id.eq(uuid)).build().list();
+    }
+
+    public List<Cbp1k1Data> queryBySyncState(String userId) {
+        return dao.queryBuilder().where(Cbp1k1DataDao.Properties.UserId.eq(userId)).orderAsc(Cbp1k1DataDao.Properties.MeasureDateTime).build().list();
+    }
+
+    public long insertCbp1k1ByUser(Cbp1k1Data cbp1k1Data){
+        return dao.insert(cbp1k1Data);
+    }
+
+    @Override
+    public List<Cbp1k1Data> queryAll(){
+        return  dao.queryBuilder().orderAsc(Cbp1k1DataDao.Properties.MeasureDateTime).build().list();
+    }
+
+    public Cbp1k1Data queryByNowDate(String userId, String beginTime, String endTime) {
+        String sql = "WHERE MEASURE_DATE_TIME BETWEEN\""
+                + beginTime
+                + "\" AND\""
+                + endTime
+                + "\" AND USER_ID= "
+                + userId
+                + " GROUP BY substr(MEASURE_DATE_TIME,1,10)"
+                + "ORDER BY MEASURE_DATE_TIME DESC";
+        List<Cbp1k1Data> cbp1k1DataList = dao.queryRaw(sql);
+        if (cbp1k1DataList == null || cbp1k1DataList.isEmpty()) {
+            return null;
+        }
+        return cbp1k1DataList.get(0);
+    }
+
+
+
+    public List<Cbp1k1Data> queryToMonth(String userId, String beginTime, String endTime){
+        String sql = "WHERE MEASURE_DATE_TIME BETWEEN\""
+                + beginTime
+                + "\" AND\""
+                + endTime
+                + "\" AND USER_ID= "
+                + userId
+                + " GROUP BY substr(MEASURE_DATE_TIME,1,18) "
+                + "ORDER BY MEASURE_DATE_TIME DESC";
+        List<Cbp1k1Data> cbp1k1DataList = dao.queryRaw(sql);
+        if (cbp1k1DataList == null || cbp1k1DataList.isEmpty()) {
+            return null;
+        }
+        return cbp1k1DataList;
+    }
+
+    public List<Cbp1k1Data> queryToDay(String userId, String beginTime, String endTime){
+        String sql = "WHERE MEASURE_DATE_TIME BETWEEN\""
+                + beginTime
+                + "\" AND\""
+                + endTime
+                + "\" AND USER_ID= "
+                + userId
+                + " GROUP BY substr(MEASURE_DATE_TIME,1,18) "
+                + "ORDER BY MEASURE_DATE_TIME DESC";
+        List<Cbp1k1Data> cbp1k1DataList = dao.queryRaw(sql);
+        if (cbp1k1DataList == null || cbp1k1DataList.isEmpty()) {
+            return null;
+        }
+        return cbp1k1DataList;
+    }
+
+
+    public List<Cbp1k1Data> queryByDate(String date, String userId) {
+        return dao.queryBuilder().where(Cbp1k1DataDao.Properties.MeasureDateTime.like("%" + date + "%")
+                , Cbp1k1DataDao.Properties.UserId.eq(userId)).orderDesc(Cbp1k1DataDao.Properties.MeasureDateTime).build().list();
+    }
+
+}

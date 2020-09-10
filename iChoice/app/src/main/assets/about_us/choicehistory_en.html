@@ -1,0 +1,344 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head lang="en">
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=0.5">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+
+    <title></title>
+
+    <link href="bootstrap.min.css?v=3.3.5" rel="stylesheet">
+    <style>
+        body {
+            background-color: #eee;font-size: 20px;
+        }
+        button{ outline: none;}
+        button.btn:focus{ outline: 0;}
+       
+        .wrapper {
+            overflow: hidden;
+            padding: 0;
+             min-width: 640px;
+        }
+
+        ul, li {
+            padding: 0;
+            margin: 0;
+            list-style: none;
+        }
+       
+
+        .m-b20 { margin-bottom: 20px; }
+
+        .ibox {
+            padding: 20px;
+            background-color: #fff;
+        }
+
+        .top {
+            background: #06bad4 url('topbg.png') no-repeat center;
+            width: 100%;
+            height: 300px;
+            padding-top: 180px;
+        }
+
+        .bottonwapper { min-width: 640px;}
+
+        .btn {
+            /*width: 260px;*/
+            border-radius: 25px;
+            height: 50px;
+            font-size: 24px;
+            border: 2px solid #fff;
+            padding-left: 25px;
+            padding-right: 25px;
+            color: #fff0f5;
+            background: none;
+        }
+
+        .btn:hover,.btn:active, .btn.active {
+            background-color: rgba(255, 255, 255, 0.5);
+            color: #fff;
+        }
+
+
+        p { font: 300 20px/1.5 aria; }
+
+        .timelinewapper {
+            background-color: #fff;
+            padding: 10px;
+        }
+
+        .timelinewapper ul:before {
+            content: '';
+            z-index: 1;
+            position: absolute;
+            top: 0px;
+            left: 98px;
+            height: 100%;
+            width: 8px;
+            background: #bfbfbf;
+        }
+
+        .timelinewapper ul { position: relative; }
+
+        .timelinewapper ul li {
+            position: relative;
+            height: 150px;
+            margin-right: 50px;
+        }
+
+        .top-circle {
+            width: 200px;
+            height: 200px;
+            border: 5px solid #ccc;
+            border-radius: 50%;
+            background-color: #06bad4;
+            color: #fff;
+            font: 500 24px/200px aria;
+        }
+
+        .timelinewapper ul li label {
+            position: absolute;
+            top: 30px;
+            left: 56px;
+            z-index: 3;
+            display: inline-block;
+            width: 154px;
+            height: 91px;
+            line-height: 91px;
+            background: #fff url(circle.png) no-repeat center;
+            color: #06bad4;
+            padding-left: 26px;
+            font-size: 18px;
+        }
+
+        .timelinewapper ul li span {
+            position: absolute;
+            top: 44px;
+            left: 230px;
+            z-index: 3;
+            background-color: #06bad4;
+            color: #fff0f5;
+            border-radius: 30px;
+            padding: 10px 20px;
+          
+        }
+
+    </style>
+</head>
+
+<body>
+
+<div class="wrapper">
+    <div class="top m-b20">
+        <div class="bottonwapper text-center center-block">
+            <button class="btn active" id="btn1" style="margin-right: 50px;" onclick="showTab(1)">
+                About ChoiceMMed
+            </button>
+            <button class="btn" id="btn2" onclick="showTab(2)">About iChoice</button>
+
+        </div>
+    </div>
+    <!--第一个选项卡开始-->
+    <div id="Tab_AboutChoiceMMed">
+
+        <div class="m-b20 ibox">
+            <p>
+                In 1993, ChoiceMMed was established in Beijing, China. As one of the largest
+                manufacturers of medical equipment, ChoiceMMed keeps providing qualified and
+                reliable products. In the past two decades, we have set up 3 main product categories
+                including pulse oximeter, primary care and home-use products, ChoiceMMed is
+                committed to providing quality products and services to the global market.
+            </p>
+            <p>
+                With continuous efforts and development, our market has covered more than 100
+                countries and regions. As our market expands, more and more users benefit from the
+                healthy life brought by our modern medical technology.
+            </p>
+        </div>
+
+        <div class="timelinewapper ibox">
+            <div class="top-circle text-center">
+                MEMORABILIA
+            </div>
+            <ul>
+                <li>
+                    <label>2019</label> <span>
+                       ChoiceMMed Singapore established
+                        </span>
+                </li>
+                <li>
+                    <label>2018</label> <span>
+                            Launched a new generation of
+                            professional blood oxygen finger serie
+                        </span>
+                </li>
+                <li>
+                    <label>2017</label> <span>
+                            Launched new series of homecare
+                            product lines
+                        </span>
+                </li>
+                <li>
+                    <label>2016</label> <span style="top: 0px; padding: 10px 20px;">
+                            ChoiceMMed has been part of Tianjin
+                            CHASE SUN Pharmaceutical Co. LTD
+                            Homecare series - Blood Pressure
+                            monitor
+                        </span>
+                </li>
+
+                <li><label>2015 </label> <span>ChoiceMMed Germany GmbH established</span></li>
+                <li>
+                    <label>2014 </label> <span>
+                            ChoiceMMed Canada Technology Inc.
+                            registered and established in British
+                            Colombia
+                        </span>
+                </li>
+                <li>
+                    <label>2013 </label> <span>
+                            Choicemmed Techonology India Pvt Ltd
+                            established
+                        </span>
+                </li>
+                <li>
+                    <label>2012 </label> <span>
+                            Upgraded Pulse Oximeter
+                            Technology - The second generation
+                        </span>
+                </li>
+                <li><label>2011 </label> <span>ChoiceMMed America Corp. established</span></li>
+                <li>
+                    <label>2010 </label> <span>
+                            Tele-medicine, personal ECG and sleep
+                            recorder products entered home health
+                            care area
+                        </span>
+                </li>
+                <li>
+                    <label>2008 </label> <span>
+                            Launched sleep recorder products and
+                            the first-aid products and entered into the
+                            hospital and home care marke
+                        </span>
+                </li>
+                <li>
+                    <label>2005 </label> <span style="top: 30px; padding: 10px 20px;">
+                            Launched the vital signs monitoring
+                            products, the portable handheld ECG
+                            monitor and wrist blood pressure monito
+                        </span>
+                </li>
+                <li>
+                    <label>2004 </label> <span>
+                            Launched the first unique fingertip pulse
+                            oximeter with waveform display and
+                            multi-direction display
+                        </span>
+                </li>
+                <li>
+                    <label>2003 </label> <span
+                        style="top: 30px; padding: 10px 20px; font-size: 18px; line-height: 1.2;">
+                            Launched the digital telemetry
+                            multi-parameter monitoring system
+                            Second-generation of the full-time digital
+                            multi-parameters wireless monitoring
+                            system
+                            Launched desktop and handheld pulse
+                            oximeter
+                        </span>
+                </li>
+                <li>
+                    <label>2001 </label> <span>
+                            Launched the full-time wireless central
+                            monitoring system
+                        </span>
+                </li>
+                <li>
+                    <label>2000 </label> <span>
+                            Launched the portable multi-parameter
+                            patient monitor
+                        </span>
+                </li>
+                <li>
+                    <label>1998 </label> <span style="top: 30px; padding: 10px 20px;">
+                            Developed MMED6000DP multi-parameter
+                            patient monitor with the parameters of
+                            ECG, RESP, SpO2, NIBP, TEMP, PR &
+                            HR
+                        </span>
+                </li>
+                <li>
+                    <label>1993 </label> <span>
+                            ChoiceMMed was founded
+                        </span>
+                </li>
+
+
+            </ul>
+        </div>
+
+    </div>
+    <!--第一个选项卡结束-->
+
+    <!--第一个选项卡开始-->
+    <div id="Tab_AboutChoice" style="display: none;">
+        <div class="ibox">
+            <p style="padding-bottom: 600px;">
+                iChoice is an APP for customers to manage health
+                data and needs to be used with our Bluetooth devices.
+                By using the iChoice, users could monitor and record
+                their health data such as heart rate, blood pressure,
+                SpO2, thermometer, etc. The stored data could serve
+                as a reference for medical diagnosi
+
+            </p>
+        </div>
+    </div>
+    <!--第一个选项卡结束-->
+
+</div>
+
+<script type="text/javascript">
+    function showTab(num) {
+        if (num == 1) {
+            document.getElementById("Tab_AboutChoiceMMed").style.display = "block";
+            document.getElementById("Tab_AboutChoice").style.display = "none";
+            addClass(document.getElementById("btn1"), "active");
+            removeClass(document.getElementById("btn2"), "active");
+        } else {
+
+            document.getElementById("Tab_AboutChoiceMMed").style.display = "none";
+            document.getElementById("Tab_AboutChoice").style.display = "block";
+            addClass(document.getElementById("btn2"), "active");
+            removeClass(document.getElementById("btn1"), "active");
+             window.webkit.messageHandlers.showMessage1.postMessage(null);
+        }
+    }
+
+
+    function hasClass(ele, cls) {
+        var reg = new RegExp('(\\s|^)' + cls + '(\\s|$)', 'ig');
+            var match =reg.test( ele.className );
+            return match;
+        }
+
+    function addClass(ele, cls) {
+        if (!this.hasClass(ele, cls))
+            ele.className += " " + cls;
+    }
+
+    function removeClass(ele, cls) {
+        if (hasClass(ele, cls)) {
+            var reg = new RegExp('(\\s|^)' + cls + '(\\s|$)','ig');
+            ele.className = ele.className.replace(reg, ' ');
+        }
+    }
+
+</script>
+</body>
+</html>

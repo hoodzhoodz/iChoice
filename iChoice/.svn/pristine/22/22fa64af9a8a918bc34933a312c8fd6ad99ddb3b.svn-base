@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".healthcheck.activity.wristpulse.ReportWpoActivity">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/text_report"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="20sp"
+            android:visibility="invisible" />
+
+        <com.github.barteksc.pdfviewer.PDFView
+            android:id="@+id/pdfView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"/>
+
+<!--        <ProgressBar-->
+<!--            android:id="@+id/progressBar_about"-->
+<!--            android:layout_width="fill_parent"-->
+<!--            android:layout_height="1dp"-->
+<!--            style="?android:attr/progressBarStyleHorizontal"-->
+<!--            android:progressDrawable="@drawable/progressbar"-->
+<!--            android:max="100"-->
+<!--            android:visibility="visible"/>-->
+<!--        <WebView-->
+<!--            android:id="@+id/webview_report"-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="match_parent"/>-->
+    </RelativeLayout>
+
+</android.support.constraint.ConstraintLayout>

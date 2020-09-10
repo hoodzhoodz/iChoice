@@ -1,0 +1,117 @@
+package com.choicemmed.ichoice.healthcheck.fragment.wristpulse;
+
+import android.annotation.SuppressLint;
+import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.support.v4.content.ContextCompat;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.util.Log;
+import android.view.View;
+import android.widget.LinearLayout;
+
+import com.choicemmed.common.DateUtils;
+import com.choicemmed.common.FormatUtils;
+import com.choicemmed.ichoice.R;
+import com.choicemmed.ichoice.framework.application.IchoiceApplication;
+import com.choicemmed.ichoice.framework.base.BaseFragment;
+import com.choicemmed.ichoice.framework.utils.MethodsUtils;
+import com.choicemmed.ichoice.framework.utils.PermissionsUtils;
+import com.choicemmed.ichoice.framework.widget.EventDecorator;
+import com.choicemmed.ichoice.healthcheck.activity.wristpulse.ReportWpoActivity;
+import com.choicemmed.ichoice.healthcheck.adapter.W314HistorySleepAdapter;
+import com.choicemmed.ichoice.healthcheck.db.W314B4Operation;
+import com.prolificinteractive.materialcalendarview.CalendarDay;
+import com.prolificinteractive.materialcalendarview.MaterialCalendarView;
+import com.prolificinteractive.materialcalendarview.OnDateSelectedListener;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+
+import butterknife.BindView;
+import pro.choicemmed.datalib.W314B4Data;
+
+/**
+*Created by
+ * @author Jiangnan
+ * @Date 2020/1/19.
+*/
+public class W314B4HistoricalRecordFragment extends BaseFragment  implements OnDateSelectedListener {
+    public static final String TAG = "W314B4HistoricalRecordFragment";
+    @BindView(R.id.trend_materialCalendarView)
+    MaterialCalendarView widget;
+    private List<CalendarDay> calendarDays = new ArrayList<>();
+    private W314HistorySleepAdapter w314HistorySleepAdapter;
+    @BindView(R.id.historical_record_list)
+    RecyclerView historicalList;
+    private W314B4Operation w314B4Operation = new W314B4Operation(getContext());
+
+    @Override
+    protected int contentViewID() {
+        return R.layout.fragment_wpo_historical_trend;
+    }
+
+    @Override
+    protected void initialize() {
+        historicalList.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayout.VERTICAL, false));
+        initMaterialCalendar();
+        initDate();
+        refeshData(Calendar.getInstance());
+
+    }
+
+    private void initDate() {
+        List<W314B4Data> w314B4DataList = w314B4Operation.queryByUser(IchoiceApplication.getAppData().userProfileInfo.getUserId());
+        if (w314B4DataList.isEmpty()){
+            return;
+        }
+        for (W314B4Data w314B4Data:w314B4DataList){
+            String DateString = w314B4Data.getStartDate();
+            Date date = DateUtils.strToDate(DateString);
+            calendarDays.add(CalendarDay.from(date));
+        }
+        widget.addDecorator(new EventDecorator(ContextCompat.getColor(getContext(),R.color.violet), calendarDays));
+    }
+
+    private void initMaterialCalendar() {
+        widget.setSelectedDate(CalendarDay.today());
+        String strDate = IchoiceApplication.getAppData().userProfileInfo.getSignupDateTime();
+        strDate = strDate.substring(6,strDate.length()-2);
+        String beginDate = DateUtils.getDateToString(Long.parseLong(strDate), FormatUtils.template_DbDateTime);
+        CalendarDay calendarDay = CalendarDay.from(DateUtils.strToCalendar(beginDate));
+        widget.state().edit().setMinimumDate(calendarDay).commit();
+        widget.state().edit().setMaximumDate(CalendarDay.today()).commit();
+        widget.setOnDateChangedListener(this);
+    }
+
+    private void refeshData(Calendar calendar){
+        String dateTimeString = FormatUtils.getDateTimeString(calendar.getTime(), FormatUtils.template_Date);
+        final List<W314B4Data> w314B4DataList = w314B4Operation.queryByUserDate(IchoiceApplication.getAppData().userProfileInfo.getUserId(), dateTimeString);
+        w314HistorySleepAdapter = new W314HistorySleepAdapter(getContext(), w314B4DataList);
+        historicalList.setAdapter(w314HistorySleepAdapter);
+        w314HistorySleepAdapter.setOnItemClickListener(new W314HistorySleepAdapter.OnItemClickListener() {
+            @SuppressLint("LongLogTag")
+            @Override
+            public void onItemClick(View view, int position) {
+                Log.d(TAG, "onItemClick: "+ position);
+                if (!PermissionsUtils.isNetworkConnected(getContext())) {
+                    MethodsUtils.showErrorTip(getActivity(),getString(R.string.no_signal));
+                    return;
+                }
+                W314B4Data w314B4Data = w314B4DataList.get(position);
+                Bundle bundle = new Bundle();
+                bundle.putString("TYPE","W314");
+                bundle.putString("UUID",w314B4Data.getUuid());
+                startActivity(ReportWpoActivity.class, bundle);
+            }
+        });
+    }
+
+
+    @Override
+    public void onDateSelected(@NonNull MaterialCalendarView widget, @NonNull CalendarDay date, boolean selected) {
+        refeshData(date.getCalendar());
+    }
+}

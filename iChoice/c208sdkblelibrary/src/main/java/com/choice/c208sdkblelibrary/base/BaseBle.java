@@ -1,0 +1,254 @@
+package com.choice.c208sdkblelibrary.base;
+
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCallback;
+import android.bluetooth.BluetoothManager;
+import android.content.Context;
+import android.content.pm.PackageManager;
+import android.os.Handler;
+import android.os.Message;
+import android.support.annotation.NonNull;
+import android.util.Log;
+
+
+import com.choice.c208sdkblelibrary.gatt.C208GattCallback;
+import com.choice.c208sdkblelibrary.utils.ErrorCode;
+
+import java.util.HashMap;
+
+import static com.choice.c208sdkblelibrary.utils.ErrorCode.ERROR_BLUETOOTH_NOT_OPEN;
+import static com.choice.c208sdkblelibrary.utils.ErrorCode.ERROR_BLUETOOTH_NOT_SUPPORTED;
+
+public abstract class BaseBle implements GattListener, BluetoothAdapter.LeScanCallback {
+    private static final String TAG = "oxBaseBle";
+    Context mContext;
+    protected BleListener mBleListener;
+    BluetoothAdapter mBluetoothAdapter;
+    public BluetoothGatt mBluetoothGatt;
+    BluetoothDevice mBluetoothDevice;
+
+    private static final long SCAN_PERIOD = 20000;
+    private static final long BLE_CONNECT_TIMEOUT = 10000;
+    public boolean foundDevice = false;
+
+    protected static final int MSG_STOP_SCAN = 0;
+    protected static final int MSG_CONNECT_TIMEOUT = 1;
+
+    protected Handler bleHandler = new Handler() {
+        @Override
+        public void handleMessage(@NonNull Message msg) {
+            switch (msg.what) {
+                case MSG_STOP_SCAN:
+                    stopLeScan();
+                    break;
+                case MSG_CONNECT_TIMEOUT:
+                    mBleListener.onError(getDeviceType(), ErrorCode.ERROR_CONNECT_TIMEOUT);
+                    closeGatt();
+                    break;
+                default:
+            }
+        }
+    };
+
+
+    public BaseBle(Context context, BleListener bleListener) {
+        mContext = context;
+        mBleListener = bleListener;
+        initBluetoothAdapter();
+    }
+
+    private void initBluetoothAdapter() {
+        BluetoothManager bluetoothManager = (BluetoothManager) mContext.getSystemService(Context.BLUETOOTH_SERVICE);
+        mBluetoothAdapter = bluetoothManager.getAdapter();
+    }
+
+    private class TestBleResult {
+        public boolean isAvailable = true;
+        public int errorMsg;
+    }
+
+    private TestBleResult testBle() {
+        TestBleResult testBleResult = new TestBleResult();
+        if (mBluetoothAdapter == null) {
+            testBleResult.isAvailable = false;
+            testBleResult.errorMsg = ERROR_BLUETOOTH_NOT_SUPPORTED;
+            return testBleResult;
+        }
+        if (!mContext.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
+            testBleResult.isAvailable = false;
+            testBleResult.errorMsg = ERROR_BLUETOOTH_NOT_SUPPORTED;
+            return testBleResult;
+        }
+        if (!mBluetoothAdapter.isEnabled()) {
+            testBleResult.isAvailable = false;
+            testBleResult.errorMsg = ERROR_BLUETOOTH_NOT_OPEN;
+            return testBleResult;
+        }
+
+        return testBleResult;
+    }
+
+    private Boolean testBleConfig() {
+        TestBleResult testBleResult = testBle();
+        if (!testBleResult.isAvailable) {
+            mBleListener.onError(getDeviceType(), testBleResult.errorMsg);
+            return false;
+        }
+        return true;
+    }
+
+    public void startLeScan() {
+        if (!testBleConfig()) {
+            return;
+        }
+        Message message = bleHandler.obtainMessage();
+        message.what = MSG_STOP_SCAN;
+        bleHandler.sendMessageDelayed(message, SCAN_PERIOD);
+
+        foundDevice = false;
+        mBluetoothAdapter.startLeScan(this);
+    }
+
+    public void stopLeScan() {
+        mBluetoothAdapter.stopLeScan(this);
+        bleHandler.removeMessages(MSG_STOP_SCAN);
+    }
+
+    public void connectDevice(String address) {
+        if (!testBleConfig()) {
+            return;
+        }
+        Log.d(TAG, "connectDevice: 开始连接。。。。");
+        if (address == null) {
+            Log.d(TAG, "connectDevice: 参数错误:mac地址为空");
+            return;
+        }
+        if (mBluetoothAdapter == null) {
+            Log.d(TAG, "connectDevice: mBluetoothAdapter未初始化");
+            return;
+        }
+        try {
+            resetGatt();
+            mBluetoothDevice = mBluetoothAdapter.getRemoteDevice(address);
+            Log.d(TAG, "connectDevice: 开始连接" + mBluetoothDevice);
+//            mBluetoothDevice.connectGatt(mContext,false,GetGattCallback());
+            mBluetoothGatt = mBluetoothDevice.connectGatt(mContext, false, GetGattCallback());
+            Message message = bleHandler.obtainMessage();
+            message.what = MSG_CONNECT_TIMEOUT;
+            bleHandler.sendMessageDelayed(message, BLE_CONNECT_TIMEOUT);
+        } catch (Exception e) {
+            Log.d(TAG, "connectDevice: 连接出错");
+            e.printStackTrace();
+        }
+
+    }
+
+    public void disconnect() {
+        if (mBluetoothGatt != null) {
+            mBluetoothGatt.disconnect();
+        }
+        mBluetoothDevice = null;
+    }
+
+    public void cancelConnect() {
+        this.bleHandler.removeMessages(MSG_CONNECT_TIMEOUT);
+        this.closeGatt();
+    }
+
+    public void resetGatt() {
+        if (mBluetoothGatt != null) {
+            mBluetoothGatt.disconnect();
+        }
+        mBluetoothDevice = null;
+    }
+
+    public void closeGatt() {
+        if (mBluetoothGatt != null) {
+            mBluetoothGatt.close();
+        }
+        mBluetoothDevice = null;
+    }
+
+    /**
+     * 发送命令
+     *
+     * @param cmd 指令
+     * @return
+     */
+    public abstract void sendCmd(String cmd);
+
+    /**
+     * 获取BluetoothGattCallback
+     *
+     * @return BluetoothGattCallback
+     */
+    protected abstract BluetoothGattCallback GetGattCallback();
+
+    /**
+     * 获取设备类型
+     *
+     * @return 设备类型
+     */
+    protected abstract DeviceType getDeviceType();
+//   DeviceType @Override
+//    public void onLeScan(BluetoothDevice bluetoothDevice, int i, byte[] bytes) {
+//
+//    }
+
+    @Override
+    public void onError(DeviceType deviceType, int errorMsg) {
+        bleHandler.removeMessages(MSG_CONNECT_TIMEOUT);
+        mBleListener.onError(deviceType, errorMsg);
+        resetGatt();
+    }
+
+    @Override
+    public void onDisconnected(DeviceType deviceType) {
+        bleHandler.removeMessages(MSG_CONNECT_TIMEOUT);
+        mBleListener.onDisconnected(deviceType);
+        resetGatt();
+    }
+
+    @Override
+    public void onInitialized(DeviceType deviceType) {
+        bleHandler.removeMessages(MSG_CONNECT_TIMEOUT);
+        mBleListener.onInitialized(deviceType);
+    }
+
+    @Override
+    public void onCmdResponse(DeviceType deviceType, byte[] data) {
+        mBleListener.onCmdResponse(deviceType, data);
+    }
+
+    @Override
+    public void onDataResponse(DeviceType deviceType, byte[] data) {
+        mBleListener.onDataResponse(deviceType, data);
+    }
+
+    @Override
+    public void onBleConnectSuccess() {
+        bleHandler.removeMessages(MSG_CONNECT_TIMEOUT);
+    }
+
+    @Override
+    public void onRACPResponse(DeviceType deviceType, byte[] data) {
+        mBleListener.onRACPResponse(deviceType, data);
+    }
+
+    @Override
+    public void onSpotCheckResponse(DeviceType deviceType, byte[] data) {
+        mBleListener.onSpotCheckResponse(deviceType, data);
+    }
+
+    @Override
+    public void onRealTimeResponse(DeviceType deviceType, byte[] data) {
+        mBleListener.onRealTimeResponse(deviceType, data);
+    }
+
+    @Override
+    public void onReadFeature(DeviceType deviceType, HashMap<String, Boolean> map) {
+        mBleListener.onReadFeature(deviceType, map);
+    }
+}

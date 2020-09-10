@@ -1,0 +1,59 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head lang="en">
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+
+    <title></title>
+
+    <link href="bootstrap.min.css?v=3.3.5" rel="stylesheet">
+    <style>
+        .head {
+            color: #000;
+            font-size: 18px;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+          ol li {
+            color: #141414;
+            font-size: 16px;
+            line-height: 1.5;
+              margin-bottom: 20px;
+        }
+
+        .m-b20 {
+            margin-bottom: 20px;
+        }
+        img{ width: 50%;}
+
+    </style>
+</head>
+
+<body>
+
+<div class="container col-sm-12 m-b20">
+    <h2 class="head">将绑带导管接头插入左图所示主机侧面插孔中，请确保绑带导管接头安装完好，以免漏气。</h2>
+    <ol>
+        <li>袖带边缘与肘部之间的距离应为大约2〜3厘米。
+            <div class="text-center">
+                <img src="img2.png"/></div>
+        </li>
+        <li>用尼龙搭扣固定袖带，使其舒适且不会太紧，因此袖带和手臂之间不应留有空间。</li>
+        <li>将手臂放在桌子上，手掌朝上。用垫子稍微支撑手臂，使袖口与心脏位置的高度保持一致。请在开始测量之前，保持安静静坐2分钟。
+            <div class="text-center">
+                <img src="img1.png"/>
+            </div>
+        </li>
+        <li>双腿不交叉，双脚平放在地板上，背部和手臂有支撑点，端坐测量。</li>
+    </ol>
+
+
+</div>
+
+
+</body>
+</html>

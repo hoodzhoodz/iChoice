@@ -1,0 +1,358 @@
+package com.choicemmed.ichoice.healthcheck.fragment.ecg;
+
+import android.annotation.SuppressLint;
+import android.os.Handler;
+import android.os.Message;
+import android.util.Log;
+import android.view.View;
+import android.widget.TextView;
+
+import com.choicemmed.blelibrary.base.DeviceType;
+import com.choicemmed.blelibrary.cmd.HeartRateCmd;
+import com.choicemmed.blelibrary.cmd.HeartRateCmdListener;
+import com.choicemmed.common.ByteUtils;
+import com.choicemmed.common.FormatUtils;
+import com.choicemmed.common.LogUtils;
+import com.choicemmed.common.NetUtils;
+import com.choicemmed.common.StringUtils;
+import com.choicemmed.common.ThreadManager;
+import com.choicemmed.common.ToastUtils;
+import com.choicemmed.common.UuidUtils;
+import com.choicemmed.ichoice.R;
+import com.choicemmed.ichoice.framework.application.IchoiceApplication;
+import com.choicemmed.ichoice.framework.base.BaseFragment;
+import com.choicemmed.ichoice.framework.utils.DevicesType;
+import com.choicemmed.ichoice.healthcheck.db.DeviceOperation;
+import com.choicemmed.ichoice.healthcheck.view.EcgScaleView;
+import com.choicemmed.ichoice.healthcheck.view.EcgView;
+import com.choicemmed.ichoice.healthcheck.view.NoPaddingTextView;
+import com.choicemmed.ichoice.healthcheck.view.ZoomControlView;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+
+import butterknife.BindView;
+import butterknife.OnClick;
+import pro.choicemmed.datalib.CFT308DataDao;
+import pro.choicemmed.datalib.DeviceInfo;
+import pro.choicemmed.datalib.EcgData;
+import pro.choicemmed.datalib.EcgDataDao;
+
+import static com.choicemmed.ichoice.framework.base.BaseDb.getDaoSession;
+
+/**
+ * Created by 117590 on 2020/8/20
+ */
+public class EcgMeasureFragment extends BaseFragment implements HeartRateCmdListener {
+    private String TAG = this.getClass().getSimpleName();
+    @BindView(R.id.home_vScaleView)
+    EcgScaleView homeVScaleView;
+    @BindView(R.id.home_vEcgBarView)
+    EcgView homeVEcgBarView;
+    @BindView(R.id.home_tv_scale)
+    TextView homeTvScale;
+    @BindView(R.id.home_zoomControls)
+    ZoomControlView homeZoomControls;
+    @BindView(R.id.tv_heart_rate)
+    NoPaddingTextView txvMeanRate;
+    private boolean showZoomControls = true;
+    private float mScale = 1f;
+
+    private HeartRateCmd mHeartRateCmd;
+    private int[] ecgData;
+    private static final int MSG_CONNECT = 0;
+    private static final int MSG_REFRESH = 1;
+    private static final int MSG_SHOWTOAST = 2;
+
+    // 心电设备发送命令响应
+    private EcgData currentEcgData = new EcgData();
+
+    @SuppressLint("HandlerLeak")
+    private Handler bleHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case MSG_CONNECT:
+                    String address = (String) msg.obj;
+                    linkDevice(address);
+                    break;
+                case MSG_REFRESH:
+                    refreshUi();
+                    uploadData();
+                    break;
+                case MSG_SHOWTOAST:
+                    int toastMsgRid = msg.arg1;
+                    if (toastMsgRid != -1) {
+                        ToastUtils.showShort(getActivity(), getString(toastMsgRid));
+                    } else {
+                        String toastMsg = (String) msg.obj;
+                        ToastUtils.showShort(getActivity(), toastMsg);
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+    };
+
+    private void linkDevice(String address) {
+        mHeartRateCmd.connectDevice(address);
+    }
+
+    @Override
+    protected int contentViewID() {
+        return R.layout.fragment_ecg_measure;
+    }
+
+    @Override
+    protected void initialize() {
+        homeVEcgBarView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (showZoomControls) {
+                    showZoomControls = false;
+                    homeZoomControls.setVisibility(View.GONE);
+                } else {
+                    showZoomControls = true;
+                    homeZoomControls.setVisibility(View.VISIBLE);
+                }
+            }
+        });
+
+        homeZoomControls.setOnButtonClicked(new ZoomControlView.OnButtonClicked() {
+            @Override
+            public void onLeftclicked() {
+                if (mScale == 0.5f) {
+                    mScale = 1;
+                    homeTvScale.setText("10mm/mV");
+                } else if (mScale == 1) {
+                    mScale = 2;
+                    homeTvScale.setText("20mm/mV");
+                    homeZoomControls.setLeftEnable(false);
+                }
+                homeZoomControls.setRightEnable(true);
+                homeVScaleView.scaleH(mScale);
+                homeVEcgBarView.scaleH(mScale);
+            }
+
+            @Override
+            public void onRightclicked() {
+                if (mScale == 2) {
+                    mScale = 1;
+                    homeTvScale.setText("10mm/mV");
+                } else if (mScale == 1) {
+                    mScale = 0.5f;
+                    homeTvScale.setText("5mm/mV");
+                    homeZoomControls.setRightEnable(false);
+                }
+                homeZoomControls.setLeftEnable(true);
+                homeVScaleView.scaleH(mScale);
+                homeVEcgBarView.scaleH(mScale);
+            }
+        });
+        mHeartRateCmd = new HeartRateCmd(getActivity(), this);
+        String timeString = FormatUtils.getDateTimeString(new Date(), FormatUtils.template_Date);
+        List<EcgData> recordList = getDaoSession(getActivity()).getEcgDataDao().queryBuilder().where(EcgDataDao.Properties.UserId.eq(IchoiceApplication.getAppData().userProfileInfo.getUserId()), EcgDataDao.Properties.MeasureTime.like(timeString + "%")).orderDesc(EcgDataDao.Properties.MeasureTime).list();
+        if (!recordList.isEmpty()) {
+            currentEcgData = recordList.get(0);
+            refreshUi();
+        }
+
+    }
+
+    @OnClick({R.id.bt_sync, R.id.bt_analysis})
+    public void onClick(View view) {
+        switch (view.getId()) {
+            case R.id.bt_sync:
+                syncDevice();
+                break;
+
+        }
+    }
+
+    private void syncDevice() {
+        List<DeviceInfo> devices = new DeviceOperation(IchoiceApplication.getInstance()).queryByUserIdType(IchoiceApplication.getAppData().userProfileInfo.getUserId(),
+                DevicesType.Ecg);
+
+        if (devices.isEmpty()) {
+            LogUtils.d(TAG, " 没有绑定设备 ");
+            return;
+        }
+
+        if (devices.get(0).getDeviceName().contains(DevicesType.A12_DEVICE_NAME)) {
+            com.choicemmed.blelibrary.utils.FormatUtils.IsA12 = true;
+        } else {
+            com.choicemmed.blelibrary.utils.FormatUtils.IsA12 = false;
+        }
+        LogUtils.d(TAG, "   IsA12 " + com.choicemmed.blelibrary.utils.FormatUtils.IsA12 + " getDeviceName " + devices.get(0).getDeviceName());
+        bleHandler.obtainMessage(MSG_CONNECT, devices.get(0).getBluetoothId()).sendToTarget();
+    }
+
+    private void refreshUi() {
+        if (currentEcgData == null) {
+            return;
+        }
+        txvMeanRate.setText(currentEcgData.getDecodeBpm() + "");
+        if (currentEcgData.getEcgTime().toLowerCase().startsWith("55aa61")) {
+            IchoiceApplication.type = "P10";
+        } else {
+            IchoiceApplication.type = "A12";
+        }
+
+        if ("A12".equals(IchoiceApplication.type)) {
+            if (!"".equals(currentEcgData.getEcgData())) {
+                ecgData = uncompressA12bEcgData(currentEcgData.getEcgData());
+            }
+        } else if ("P10".equals(IchoiceApplication.type)) {
+            ecgData = uncompressP10bEcgData(currentEcgData.getEcgData());
+        }
+        homeVEcgBarView.redrawEcg(ecgData);
+    }
+
+
+    private void uploadData() {
+        ThreadManager.execute(new Runnable() {
+            @Override
+            public void run() {
+                if (NetUtils.isConnected(getActivity())) {
+//                    syncData2Server(HeartPalApplication.getCurrentUser());
+                }
+            }
+        });
+    }
+
+    //    private void syncData2Server(User currentUser) {
+//        Log.e("===", TestUtils.TestUtils());
+//        List<Record> records = HeartPalApplication.getmInstance()
+//                .getBoxStore().boxFor(Record.class).query()
+//                .equal(Record_.userId, currentUser.getUserId())
+//                .equal(Record_.syncStatus, 0)
+//                .build().find();
+//        if (records.size() > 0) {
+//            for (Record r : records) {
+//                dataTransfer(currentUser, r);
+//            }
+//        }
+//        Log.e("===", TestUtils.TestUtils());
+//    }
+    public static int[] uncompressP10bEcgData(String ecgDataString) {
+        if (ecgDataString.length() != 22512) {
+            return null;
+        }
+        String ecgDataStringWithoutCmd = ecgDataString.substring(10, 22510);
+        int[] result = new int[7500];
+        for (int i = 0; i < result.length; i++) {
+            result[i] = Integer.parseInt(ecgDataStringWithoutCmd.substring(i * 3, i * 3 + 3), 16);
+        }
+        return result;
+    }
+
+    public static int[] uncompressA12bEcgData(String ecgDataString) {
+        String compressedEcgDataString = ecgDataString.substring(6, 15036);
+        if (compressedEcgDataString == null || compressedEcgDataString.isEmpty()) {
+            return null;
+        }
+        ArrayList<Byte> compressedEcgData = ByteUtils.hexString2List(compressedEcgDataString);
+        ArrayList<Integer> ecgData = new ArrayList<Integer>();
+        for (int i = 0; i < 15; i++) {
+            // 每501个字节传输500个数据
+            int start = i * 501;
+            int end = start + 501;
+            List<Byte> partialData = compressedEcgData.subList(start, end);
+
+            for (int j = 0; j < 500; j++) {
+                if (j == 0) {
+                    int ecgPoint = ((partialData.get(j) & 0xff) << 8)
+                            + ((partialData.get(j + 1) & 0xff));
+                    ecgData.add(ecgPoint);
+                } else {
+                    if ((partialData.get(j + 1) & 0xff) < 128) {
+                        // A(n+1) < 128:B(n) = B(n-1) + A(n+1)
+                        int ecgPoint = ecgData.get(ecgData.size() - 1)
+                                + (partialData.get(j + 1) & 0xff);
+                        ecgData.add(ecgPoint);
+                    } else {
+                        // A(n+1) >= 128:B(n) = B(n-1) - A(n+1) +128
+                        int ecgPoint = ecgData.get(ecgData.size() - 1)
+                                - (partialData.get(j + 1) & 0xff) + 128;
+                        ecgData.add(ecgPoint);
+                    }
+                }
+            }
+        }
+
+        int[] result = new int[ecgData.size()];
+        for (int i = 0; i < ecgData.size(); i++) {
+            result[i] = ecgData.get(i);
+        }
+        return result;
+    }
+
+
+    @Override
+    public void onFoundDevice(DeviceType deviceType, String address, String deviceName) {
+
+    }
+
+    @Override
+    public void onScanTimeout(DeviceType deviceType) {
+        bleHandler.obtainMessage(MSG_SHOWTOAST, R.string.error_scan_timeout, -1, null).sendToTarget();
+        LogUtils.d(TAG, " onScanTimeout ");
+    }
+
+    @Override
+    public void onError(DeviceType deviceType, String errorMsg) {
+        bleHandler.obtainMessage(MSG_SHOWTOAST, -1, -1, errorMsg).sendToTarget();
+        LogUtils.d(TAG, " onError " + "  deviceType " + deviceType + "  errorMsg " + errorMsg);
+    }
+
+    @Override
+    public void onDisconnected(DeviceType deviceType) {
+        LogUtils.d(TAG, " onDisconnected ");
+    }
+
+    @Override
+    public void onLoadBegin() {
+        currentEcgData = new EcgData();
+        LogUtils.d(TAG, " onLoadBegin ");
+    }
+
+    @Override
+    public void onRecordInfoResponse(String recordInfo, String measureTime, int ecgHeartRate, int ecgResult, String ecgErrorCode) {
+        currentEcgData = new EcgData();
+        currentEcgData.setEcgTime(recordInfo);
+        currentEcgData.setMeasureTime(measureTime);
+        currentEcgData.setDecodeBpm(ecgHeartRate);
+        LogUtils.d(TAG, " onRecordInfoResponse " + currentEcgData.toString());
+    }
+
+    @Override
+    public boolean onEcgDataResponse(String ecgData) {
+        currentEcgData.setEcgData(ecgData);
+        currentEcgData.setUuid(UuidUtils.getUuid());
+        currentEcgData.setUserId(IchoiceApplication.getAppData().userProfileInfo.getUserId());
+        String now = com.choicemmed.blelibrary.utils.FormatUtils.getDateTimeString(new Date(), com.choicemmed.blelibrary.utils.FormatUtils.template_DbDateTime);
+        currentEcgData.setLastUpdateTime(now);
+        LogUtils.d(TAG, " onEcgDataResponse ecgData " + ecgData);
+        return getDaoSession(getActivity()).getEcgDataDao().insert(currentEcgData) != -1;
+    }
+
+    @Override
+    public void onLoadEnd(boolean success, String errorMsg, String type) {
+//        IchoiceApplication.type = type;
+        Log.e("wangsj", "onLoadEnd: " + success);
+        if (!success) {
+            bleHandler.obtainMessage(MSG_SHOWTOAST, -1, -1, errorMsg).sendToTarget();
+        } else {
+            if (!StringUtils.isEmpty(currentEcgData.getEcgData())) {
+                bleHandler.obtainMessage(MSG_REFRESH).sendToTarget();
+            } else {
+                bleHandler.obtainMessage(MSG_SHOWTOAST, -1, -1, getString(R.string.error_null_device_data)).sendToTarget();
+            }
+
+        }
+        LogUtils.d(TAG, " onLoadEnd  " + success);
+    }
+}

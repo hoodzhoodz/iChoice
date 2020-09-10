@@ -1,0 +1,232 @@
+package com.choicemmed.ichoice.profile.fragment;
+
+import android.Manifest;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.Fragment;
+import android.support.v4.content.ContextCompat;
+import android.view.View;
+import android.widget.TextView;
+
+import com.choicemmed.common.LogUtils;
+import com.choicemmed.common.StringUtils;
+import com.choicemmed.ichoice.R;
+import com.choicemmed.ichoice.framework.application.IchoiceApplication;
+import com.choicemmed.ichoice.framework.base.BaseFragment;
+import com.choicemmed.ichoice.framework.utils.Constant;
+import com.choicemmed.ichoice.framework.utils.MethodsUtils;
+import com.choicemmed.ichoice.framework.utils.Utils;
+import com.choicemmed.ichoice.framework.view.IBaseView;
+import com.choicemmed.ichoice.framework.widget.ChooseAvatarPopupView;
+import com.choicemmed.ichoice.healthcheck.activity.DevicesActivity;
+import com.choicemmed.ichoice.healthcheck.db.UserOperation;
+import com.choicemmed.ichoice.initalization.config.ApiConfig;
+import com.choicemmed.ichoice.profile.activity.WebViewActivity;
+import com.choicemmed.ichoice.profile.activity.SettingsActivity;
+import com.choicemmed.ichoice.profile.presenter.impl.ProfilePresenterImpl;
+import com.facebook.drawee.view.SimpleDraweeView;
+import com.lxj.xpopup.XPopup;
+import com.lzy.imagepicker.ImagePicker;
+import com.lzy.imagepicker.bean.ImageItem;
+import com.lzy.imagepicker.ui.ImageGridActivity;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Locale;
+
+import butterknife.BindView;
+import butterknife.OnClick;
+import pro.choicemmed.datalib.UserProfileInfo;
+
+/**
+ * Created by gaofang on 2019/1/14.
+ * 个人中心
+ */
+
+public class ProfileFragment extends BaseFragment implements IBaseView {
+    @BindView(R.id.img_profile)
+    SimpleDraweeView imgHead;
+    //    @BindView(R.id.img_profile_failure)
+//    ImageView imgFailure;
+    @BindView(R.id.tv_profile_version)
+    TextView tvVersion;
+    @BindView(R.id.tv_profile_name)
+    TextView tvName;
+
+    private int maxImgCount = 1;               //允许选择图片最大数
+    private ArrayList<ImageItem> images = null;
+    private static final int RESULT_CODE_STARTCAMERA = 0x10;
+    private File newFile;
+    private String filePath;
+    private UserProfileInfo userProfileInfo;
+    private ProfilePresenterImpl profilePresenter;
+    public static Fragment getInstance() {
+        Fragment fragment = new ProfileFragment();
+        return fragment;
+    }
+
+    @Override
+    protected int contentViewID() {
+        return R.layout.fragment_profile;
+    }
+
+    @Override
+    protected void initialize() {
+        Utils.initImagePicker(maxImgCount);
+        tvVersion.setText(getString(R.string.version) + Utils.getVersionName(getContext()));
+        profilePresenter = new ProfilePresenterImpl(getActivity(), this);
+
+
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        String language = Locale.getDefault().getLanguage();
+        userProfileInfo = IchoiceApplication.getInstance().getDaoSession().getUserProfileInfoDao().queryBuilder().unique();
+        IchoiceApplication.getAppData().userProfileInfo = userProfileInfo;
+        if (userProfileInfo !=null){
+            if (!userProfileInfo.getPhotoExtension().equals("")){
+                Utils.setRoundImage(getContext(),imgHead,userProfileInfo.getPhotoExtension());
+            }
+            if (!StringUtils.isEmpty(userProfileInfo.getFirstName()) && !StringUtils.isEmpty(userProfileInfo.getFamilyName())) {
+                if (language.contains("zh")) {
+                    tvName.setText(userProfileInfo.getFamilyName() + " " + userProfileInfo.getFirstName());
+                } else {
+                    tvName.setText(userProfileInfo.getFirstName() + " " + userProfileInfo.getFamilyName());
+                }
+
+            }
+        } else if (!StringUtils.isEmpty(IchoiceApplication.getAppData().user.getHeadImgUrl())) {
+            Utils.setRoundImage(getContext(), imgHead, IchoiceApplication.getAppData().user.getHeadImgUrl());
+            if (!StringUtils.isEmpty(IchoiceApplication.getAppData().user.getFirstName()) && !StringUtils.isEmpty(IchoiceApplication.getAppData().user.getFamilyName())) {
+                if (language.contains("zh")) {
+                    tvName.setText(userProfileInfo.getFamilyName() + " " + userProfileInfo.getFirstName());
+                } else {
+                    tvName.setText(userProfileInfo.getFirstName() + " " + userProfileInfo.getFamilyName());
+                }
+            }
+        }
+
+    }
+
+    @OnClick({R.id.stv_profile_my_device, R.id.stv_profile_settings, R.id.stv_profile_about, R.id.stv_profile_disclaimer, R.id.btn_profile_logout, R.id.img_profile})
+    public void onClick(View v){
+        Bundle bundle = new Bundle();
+        switch (v.getId()){
+            case R.id.stv_profile_my_device:
+                startActivity(DevicesActivity.class);
+                break;
+            case R.id.stv_profile_settings:
+                startActivity(SettingsActivity.class);
+                break;
+            case R.id.stv_profile_about:
+                bundle.putString(Constant.TYPE, Constant.ABOUT_CHOICEMMED);
+                startActivity(WebViewActivity.class, bundle);
+                break;
+            case R.id.stv_profile_disclaimer:
+                bundle.putString(Constant.TYPE, Constant.DISCLAIMER);
+                startActivity(WebViewActivity.class, bundle);
+//                startActivity(DisclaimerActivity.class);
+                break;
+            case R.id.btn_profile_logout:
+                MethodsUtils.showDoubleTip(getActivity(),getString(R.string.tip_logout));
+                break;
+            case R.id.img_profile:
+                showTip();
+                break;
+                default:
+        }
+    }
+
+    private void showTip() {
+        XPopup.get(getActivity()).asCustom(new ChooseAvatarPopupView(getActivity(), new ChooseAvatarPopupView.ChooseCallback() {
+            @Override
+            public void onCamera(){
+                autoCameraPermission();
+            }
+
+            @Override
+            public void onAlbum() {
+                Intent intent1 = new Intent(getActivity(), ImageGridActivity.class);
+                startActivityForResult(intent1, ApiConfig.REQUEST_CODE_SELECT);
+
+            }
+        })).show();
+    }
+
+    private void autoCameraPermission() {
+        if (PackageManager.PERMISSION_GRANTED == ContextCompat.checkSelfPermission(getContext(), Manifest.permission.CAMERA)){
+            onCamera();
+        }else {
+            //提示用户开户权限   拍照和读写sd卡权限
+            String[] perms = {Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA};
+            ActivityCompat.requestPermissions(getActivity(), perms, RESULT_CODE_STARTCAMERA);
+        }
+    }
+
+    private void onCamera() {
+        Intent intent = new Intent(getActivity(), ImageGridActivity.class);
+        /**是否是直接打开相机*/
+        intent.putExtra(ImageGridActivity.EXTRAS_TAKE_PICKERS, true);
+        startActivityForResult(intent, ApiConfig.REQUEST_CODE_SELECT);
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == ImagePicker.RESULT_CODE_ITEMS) {
+            int compressSize=50;
+            /**添加图片返回*/
+            if (data != null && requestCode == ApiConfig.REQUEST_CODE_SELECT) {
+                images = (ArrayList<ImageItem>) data.getSerializableExtra(ImagePicker.EXTRA_RESULT_ITEMS);
+                if (images != null) {
+                    filePath=images.get(0).path;
+                    File file =new File(filePath);
+                    String size= Utils.getReadableFileSize(file.length());
+                    String unit = size.substring(size.length() - 2);
+                    if (unit.contains("MB")) {
+                        newFile=Utils.getCompressionImage(getActivity(),file,"head_compression.jpg", compressSize);
+                    } else if (unit.contains("KB")) {
+                        String leng=size.substring(0,size.indexOf(" "));
+                        double newSize=Double.parseDouble(leng);
+                        if (newSize>50.0){
+                            LogUtils.i("gxz","图片大小"+Utils.getReadableFileSize(file.length()));
+                            newFile=Utils.getCompressionImage(getActivity(),file,"head_compression.jpg",80);
+                        }
+                    }
+                    if (newFile!=null){
+                        profilePresenter.sendProfileRequest(IchoiceApplication.getAppData().user.getToken(), newFile);
+                        Utils.setRoundImage(getContext(),imgHead,userProfileInfo.getPhotoExtension());
+                    }else {
+                        MethodsUtils.showErrorTip(getActivity(),getString(R.string.images_fails));
+                    }
+                }
+            }
+        }
+    }
+
+    @Override
+    public void onSuccess() {
+        try {
+            Utils.setRoundImage(getActivity(), imgHead, IchoiceApplication.getAppData().user.getHeadImgUrl());
+            userProfileInfo.setPhotoExtension(IchoiceApplication.getAppData().user.getHeadImgUrl());
+            userProfileInfo.setPhoto100x100(IchoiceApplication.getAppData().user.getHeadImgUrl100x100());
+            userProfileInfo.setPhoto200x200(IchoiceApplication.getAppData().user.getHeadImgUrl200x200());
+            userProfileInfo.setPhoto500x400(IchoiceApplication.getAppData().user.getHeadImgUrl500x400());
+            if (userProfileInfo!=null){
+                UserOperation userOperation = new UserOperation(getActivity());
+                userOperation.upDateUser(userProfileInfo);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void onError(String msg) {
+        MethodsUtils.showDoubleTip(getActivity(),msg);
+    }
+}

@@ -1,0 +1,230 @@
+package com.choicemmed.ichoice.healthcheck.db;
+
+import android.content.Context;
+import android.database.Cursor;
+
+import com.choicemmed.common.LogUtils;
+import com.choicemmed.ichoice.framework.base.BaseDb;
+
+import org.greenrobot.greendao.query.WhereCondition;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import pro.choicemmed.datalib.OxSpotData;
+import pro.choicemmed.datalib.OxSpotDataDao;
+
+public class OxSpotOperation extends BaseDb {
+    private static final String TAG = OxSpotOperation.class.getSimpleName();
+    private Context context;
+
+    public OxSpotOperation(Context context) {
+        dao = getDaoSession(context).getOxSpotDataDao();
+        this.context = context;
+    }
+
+    public long insertOxSpotByUser(OxSpotData oxSpotData) {
+        return dao.insert(oxSpotData);
+    }
+
+    public List<OxSpotData> queryBySyncState(String userId) {
+        return dao.queryBuilder().where(OxSpotDataDao.Properties.UserId.eq(userId)).orderAsc(OxSpotDataDao.Properties.MeasureDateTime).build().list();
+    }
+
+    /**
+     * 通过日期查找列表
+     *
+     * @param dateString 日期值
+     * @param userId     用户id
+     * @return
+     */
+    public List<OxSpotData> queryByDate(String dateString, String userId) {
+        return dao.queryBuilder().where(OxSpotDataDao.Properties.MeasureDateTime.like("%" + dateString + "%"), OxSpotDataDao.Properties.UserId.eq(userId)).orderDesc(OxSpotDataDao.Properties.MeasureDateTime).build().list();
+    }
+
+    public OxSpotData queryByNow(String userId) {
+        List<OxSpotData> list = dao.queryBuilder().where(OxSpotDataDao.Properties.UserId.eq(userId)).build().list();
+        if (list.isEmpty()) {
+            return null;
+        }
+        return list.get(list.size() - 1);
+
+    }
+//    public OxSpotData queryByStart(String userId) {
+//        List<OxSpotData> list = dao.queryBuilder().where(OxSpotDataDao.Properties.UserId.eq(userId)).orderAsc(OxSpotDataDao.Properties.MeasureDateTime).build().list();
+//        if (list.isEmpty()) {
+//            return null;
+//        }
+//        return list.get(0);
+//
+//    }
+
+    /**
+     * 查询历史记录（天）
+     *
+     * @param userId    用户id
+     * @param startTime 开始日期 （yyyy-MM-dd HH:mm:ss）
+     * @param endTime   结束日期 （yyyy-MM-dd HH:mm:ss）
+     * @return
+     */
+    public List<OxSpotData> queryToDay(String userId, String startTime, String endTime) {
+        String sql = "WHERE MEASURE_DATE_TIME BETWEEN\""
+                + startTime
+                + "\" AND\""
+                + endTime
+                + "\" AND USER_ID= "
+                + userId
+                + " GROUP BY substr(MEASURE_DATE_TIME,1,18) "
+                + "ORDER BY MEASURE_DATE_TIME DESC";
+        List<OxSpotData> oxSpotDataList = dao.queryRaw(sql);
+        if (oxSpotDataList == null || oxSpotDataList.isEmpty()) {
+            return null;
+        }
+        return oxSpotDataList;
+    }
+
+
+//SELECT deveui,COUNT(id),AVG(smoke),DATE_FORMAT(concat(date(time),' ',hour(time),':',floor( minute(time)/5 )*5)
+// ,'%Y-%m-%d %H:%i') as dataStartTime FROM temp_tbl t WHERE deveui = '0000000016010b3c' GROUP BY DATE(time),HOUR(time),MINUTE(time)
+
+    //    SELECT time, COUNT( * ) AS num
+//FROM
+//	(
+//	SELECT Duration,
+//		DATE_FORMAT(
+//			concat( date( TimeStart ), ' ', HOUR ( TimeStart ), ':', floor( MINUTE ( TimeStart ) / 30 ) * 30 ),
+//			'%Y-%m-%d %H:%i'
+//		) AS time
+//	FROM tarck
+//	WHERE Flag = 0  AND Duration >= 300
+//	) a
+//GROUP BY DATE_FORMAT( time, '%Y-%m-%d %H:%i' )
+//ORDER BY time;
+    String string = " SELECT COUNT(1) AS total, DATE_FORMAT(created_time,'%Y-%m-%d') AS days FROM task_execution GROUP BY days desc;\n";
+
+
+    //    select B.userid,A.name,DATE_FORMAT(paytime,'%m-%d-%Y')as fd ,count(id),sum(amount)
+//from B left join A on A.userid=B.userid
+//where valid=1
+//group by userid,fd
+//DATE(TimeStart) AS date
+    public List<OxSpotData> queryAVGDataByDay(String userId) {
+        List<OxSpotData> list = new ArrayList<>();
+        String sql = "SELECT " +
+                "ID," +
+                "DEVICE_NAME," +
+                "USER_ID," +
+                "SERVER_ID," +
+                "substr(MEASURE_DATE_TIME,1,11)|| '00:00:00' MEASURE_DATE_TIME," +
+                "LAST_UPDATE_TIME," +
+                "LAST_UPLOAD_TIME," +
+                "CAST(avg(BLOOD_OXYGEN) as int) BLOOD_OXYGEN," +
+                "PI," +
+                "CAST(avg(PULSE_RATE) as int) PULSE_RATE," +
+                "CAST(avg(RR) as int) RR," +
+                "DEVICE_ID," +
+                "SYNC_STATE," +
+                "CREATE_TIME," +
+                "LOG_DATE_TIME" +
+                " FROM " + "OX_SPOT_DATA" +
+                " WHERE USER_ID = " + userId +
+                " GROUP BY substr(MEASURE_DATE_TIME,1,11)|| '00:00:00'" +
+                " ORDER BY MEASURE_DATE_TIME ASC";
+        Cursor c = dao.getDatabase().rawQuery(sql, null);
+        try {
+            if (c.moveToFirst()) {
+
+                do {
+                    OxSpotData oxSpotData = new OxSpotData();
+                    oxSpotData.setUserId(c.getString(c.getColumnIndex("USER_ID")));
+                    oxSpotData.setBloodOxygen(c.getInt(c.getColumnIndex("BLOOD_OXYGEN")));
+                    oxSpotData.setPulseRate(c.getInt(c.getColumnIndex("PULSE_RATE")));
+                    oxSpotData.setRR(c.getInt(c.getColumnIndex("RR")));
+                    oxSpotData.setId(c.getString(c.getColumnIndex("ID")));
+                    oxSpotData.setMeasureDateTime(c.getString(c.getColumnIndex("MEASURE_DATE_TIME")));
+                    LogUtils.d(TAG, oxSpotData.toString());
+                    list.add(oxSpotData);
+                } while (c.moveToNext());
+            }
+        } finally {
+            c.close();
+        }
+        return list;
+
+    }
+
+    public List<OxSpotData> queryAVGData(String userId, String startTime) {
+        List<OxSpotData> list = new ArrayList<>();
+        String sql = "SELECT " +
+                "ID," +
+                "DEVICE_NAME," +
+                "USER_ID," +
+                "SERVER_ID," +
+                "substr(MEASURE_DATE_TIME,1,11) || case 2-length(substr(MEASURE_DATE_TIME,12,2)/3*3) when 1 then '0' else '' end || (substr(MEASURE_DATE_TIME,12,2)/3*3) || ':00:00' MEASURE_DATE_TIME," +
+                "LAST_UPDATE_TIME," +
+                "LAST_UPLOAD_TIME," +
+                "CAST(avg(BLOOD_OXYGEN) as int) BLOOD_OXYGEN," +
+                "PI," +
+                "CAST(avg(PULSE_RATE) as int) PULSE_RATE," +
+                "CAST(avg(RR) as int) RR," +
+                "DEVICE_ID," +
+                "SYNC_STATE," +
+                "CREATE_TIME," +
+                "LOG_DATE_TIME" +
+                " FROM " + "OX_SPOT_DATA" +
+                " WHERE USER_ID = " + userId +
+                " GROUP BY substr(MEASURE_DATE_TIME,1,11) || case 2-length(substr(MEASURE_DATE_TIME,12,2)/3*3) when 1 then '0' else '' end || (substr(MEASURE_DATE_TIME,12,2)/3*3) || ':00:00'\n" +
+                " ORDER BY MEASURE_DATE_TIME ASC";
+
+        Cursor c = dao.getDatabase().rawQuery(sql, null);
+        try {
+            if (c.moveToFirst()) {
+
+                do {
+                    OxSpotData oxSpotData = new OxSpotData();
+                    oxSpotData.setUserId(c.getString(c.getColumnIndex("USER_ID")));
+                    oxSpotData.setBloodOxygen(c.getInt(c.getColumnIndex("BLOOD_OXYGEN")));
+                    oxSpotData.setPulseRate(c.getInt(c.getColumnIndex("PULSE_RATE")));
+                    oxSpotData.setRR(c.getInt(c.getColumnIndex("RR")));
+                    oxSpotData.setId(c.getString(c.getColumnIndex("ID")));
+                    oxSpotData.setMeasureDateTime(c.getString(c.getColumnIndex("MEASURE_DATE_TIME")));
+                    list.add(oxSpotData);
+                } while (c.moveToNext());
+            }
+        } finally {
+            c.close();
+        }
+        return list;
+
+    }
+
+
+
+
+
+
+    /**
+     * 查询历史记录（月）
+     * @param userId
+     * @param beginTime
+     * @param endTime
+     * @return
+     */
+    public List<OxSpotData> queryToMonth(String userId, String beginTime, String endTime){
+        String sql = "WHERE MEASURE_DATE_TIME BETWEEN\""
+                + beginTime
+                + "\" AND\""
+                + endTime
+                + "\" AND USER_ID= "
+                + userId
+                + " GROUP BY substr(MEASURE_DATE_TIME,1,18) "
+                + "ORDER BY MEASURE_DATE_TIME DESC";
+        List<OxSpotData> spotDataList = dao.queryRaw(sql);
+        if (spotDataList == null || spotDataList.isEmpty()) {
+            return null;
+        }
+        return spotDataList;
+    }
+
+
+}

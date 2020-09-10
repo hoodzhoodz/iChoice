@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">Blelibrary</string>
+
+    <!--error msg-->
+    <string name="error_bluetooth_not_supported">设备不支持蓝牙</string>
+    <string name="error_ble_not_supported">设备不支持蓝牙低功耗技术</string>
+    <string name="error_bluetooth_not_open">Compruebe si el bluetooth del dispositivo está encendido o no</string>
+    <string name="error_connect_timeout">Tiempo de conexión</string>
+    <!--P10b-->
+    <string name="error_scan_timeout">No puede encontrar el dispositivo, compruebe si el dispositivo está encendido o no</string>
+    <string name="error_null_device_data">设备中没有数据，请先检测</string>
+    <string name="error_device_exception">通信中断，请重试</string>
+
+</resources>

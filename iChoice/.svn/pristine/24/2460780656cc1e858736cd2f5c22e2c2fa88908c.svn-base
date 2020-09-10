@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:background="@color/transparency"
+    tools:context=".healthcheck.activity.pulseoximeter.ResultPOSpotCheckActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/white"
+        android:orientation="vertical">
+
+
+        <!--点测布局-->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="30dp"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:paddingLeft="12dp"
+            android:layout_marginTop="6dp"
+            android:paddingRight="12dp"
+            android:layout_marginBottom="5dp"
+            android:orientation="horizontal"
+            android:id="@+id/ll_point">
+
+            <LinearLayout
+                android:id="@+id/oxspotmeasurement"
+                style="@style/left_layout"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="match_parent">
+
+                <TextView
+                    android:id="@+id/oxspotmeasurement_tab_textview"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:text="@string/measurement"
+                    android:textAlignment="center"
+                    android:textColor="@drawable/top_text"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/oxspot_historicalresults"
+                style="@style/mid_layout"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="match_parent">
+
+                <TextView
+                    android:id="@+id/oxspot_historicalresults_tab_textview"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:text="@string/historical_results"
+                    android:textAlignment="center"
+                    android:textColor="@drawable/top_text"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/oxspot_historicaltrend"
+                style="@style/right_layout"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="match_parent">
+
+                <TextView
+                    android:id="@+id/oxspot_historicaltrend_tab_textview"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:text="@string/historical_trend"
+                    android:textAlignment="center"
+                    android:textColor="@drawable/top_text" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!--实时测量布局-->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="30dp"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:paddingLeft="12dp"
+            android:layout_marginTop="6dp"
+            android:paddingRight="12dp"
+            android:layout_marginBottom="5dp"
+            android:orientation="horizontal"
+            android:id="@+id/ll_real"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:id="@+id/ll_ox_real"
+                style="@style/left_layout"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="match_parent">
+
+                <TextView
+                    android:id="@+id/tv_ox_real"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:text="@string/ox_real_measurement"
+                    android:textAlignment="center"
+                    android:textColor="@drawable/top_text"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/ll_ox_his"
+                style="@style/mid_layout"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="match_parent">
+
+                <TextView
+                    android:id="@+id/tv_ox_his"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:text="@string/historical_results"
+                    android:textAlignment="center"
+                    android:textColor="@drawable/top_text"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
+
+        </LinearLayout>
+
+
+        <FrameLayout
+            android:id="@+id/fragment_result_ox_spot"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </LinearLayout>
+
+
+</android.support.constraint.ConstraintLayout>

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_corner"
+    android:orientation="vertical"
+    android:layout_margin="@dimen/dp_12">
+
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="80dp">
+
+        <TextView
+            android:id="@+id/tv_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="17dp"
+            android:layout_marginTop="13dp"
+            android:gravity="bottom"
+            android:textColor="@color/blue_8c9eff"
+            android:textSize="11sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="30sp"
+            android:textColor="@color/blue_8c9eff"
+            android:id="@+id/tv2"
+            android:layout_centerHorizontal="true"
+            android:layout_alignParentBottom="true"
+            android:layout_marginBottom="10dp"
+            android:text=".8"></TextView>
+
+        <TextView
+            android:layout_toLeftOf="@id/tv2"
+            android:id="@+id/tv1"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_marginLeft="30dp"
+            android:textSize="45sp"
+            android:textColor="@color/blue_8c9eff"
+            android:layout_gravity="center"
+            android:layout_alignBaseline="@id/tv2"></TextView>
+
+
+        <TextView
+            android:id="@+id/tv3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/temp_unit"
+            android:textColor="@color/text_221815"
+            android:textSize="15sp"
+            android:layout_toRightOf="@id/tv2"
+            android:layout_alignBaseline="@id/tv2"
+            android:layout_marginLeft="10dp"></TextView>
+
+
+    </RelativeLayout>
+
+
+</LinearLayout>

@@ -1,0 +1,77 @@
+package com.choicemmed.ichoice.healthcheck.fragment.pulseoximeter;
+
+import android.support.design.widget.TabLayout;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentPagerAdapter;
+
+import com.choicemmed.ichoice.R;
+import com.choicemmed.ichoice.framework.base.BaseFragment;
+import com.choicemmed.ichoice.healthcheck.custom.NoSrcollViewPage;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import butterknife.BindView;
+
+public class OXRealHistoricalFragment extends BaseFragment {
+//    private OxDayFragment oxDayFragment;
+//    private OxWeekFragment oxWeekFragment;
+//    private OxMonthFragment oxMonthFragment;
+//    private OxYearFragment oxYearFragment;
+//    @BindView(R.id.time_trend)
+//    TabLayout timeTabLayout;
+//
+//    @BindView(R.id.noSrcollViewPage_ox_trend)
+//    NoSrcollViewPage viewPage_trend;
+
+    private List<String> titles = new ArrayList<>();
+    private List<Fragment> fragments = new ArrayList<>();
+
+    @Override
+    protected int contentViewID() {
+        return R.layout.fragment_ox_real_historical;
+    }
+
+    @Override
+    protected void initialize() {
+//        oxDayFragment = new OxDayFragment();
+//        oxWeekFragment = new OxWeekFragment();
+//        oxMonthFragment = new OxMonthFragment();
+//        oxYearFragment = new OxYearFragment();
+//        fragments.add(oxDayFragment);
+//        fragments.add(oxWeekFragment);
+//        fragments.add(oxMonthFragment);
+//        fragments.add(oxYearFragment);
+
+//        titles.add("Day");
+//        titles.add("Week");
+//        titles.add("Month");
+//        titles.add("Year");
+
+//        MyAdapter myAdapter = new MyAdapter(getChildFragmentManager());
+//        viewPage_trend.setAdapter(myAdapter);
+//        timeTabLayout.setupWithViewPager(viewPage_trend);
+    }
+
+    class MyAdapter extends FragmentPagerAdapter {
+        public MyAdapter(FragmentManager fm) {
+            super(fm);
+        }
+
+        @Override
+        public Fragment getItem(int position) {
+            return fragments.get(position);
+        }
+
+        @Override
+        public int getCount() {
+            return fragments != null ? fragments.size() : 0;
+        }
+
+        @Override
+        public CharSequence getPageTitle(int position) {
+            return titles.get(position);
+        }
+    }
+}

@@ -1,0 +1,354 @@
+package com.choicemmed.blelibrary.cmd;
+
+import android.content.Context;
+import android.os.Handler;
+import android.os.Message;
+import android.util.Log;
+
+import com.choicemmed.blelibrary.R;
+import com.choicemmed.blelibrary.base.BleListener;
+import com.choicemmed.blelibrary.base.DeviceType;
+import com.choicemmed.blelibrary.ble.HeartRateBle;
+import com.choicemmed.blelibrary.utils.ByteUtils;
+import com.choicemmed.blelibrary.utils.FormatUtils;
+
+import java.text.Normalizer;
+import java.util.Calendar;
+import java.util.IllegalFormatCodePointException;
+
+/**
+ * Created by Yu Baoxiang on 2015/6/24.
+ */
+
+public class HeartRateCmd implements BleListener {
+    protected static final String LogTag_BLE = "BLELog";
+
+    private static final int CMD_RESPONSE_TIMEOUT = 5000;
+
+    private Context mContext;
+    private HeartRateCmdListener mHeartRateCmdListener;
+
+    private HeartRateBle mHeartRateBle;
+
+    private String mRespString = "";
+    private String lastIndex = "";
+
+    private boolean receivedResp = false;
+
+    private static final int MSG_CHECKRESP = 0;
+    private int mCurrentIndex = 0;
+    private Handler bleHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case MSG_CHECKRESP:
+                    Log.d(LogTag_BLE, "1接收到[等待命令响应超时]消息");
+                    if (receivedResp) {
+                        receivedResp = false;
+                        bleHandler.sendEmptyMessageDelayed(MSG_CHECKRESP, CMD_RESPONSE_TIMEOUT);
+                    } else {
+                        cmdRespTimeout();
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+    };
+
+    public HeartRateCmd(Context context, HeartRateCmdListener HeartRateCmdListener) {
+        mContext = context;
+        mHeartRateCmdListener = HeartRateCmdListener;
+        mHeartRateBle = new HeartRateBle(context, this);
+    }
+
+    public void startLeScan() {
+        mHeartRateBle.startLeScan();
+    }
+
+    public void connectDevice(String address) {
+        mHeartRateBle.connectDevice(address);
+    }
+
+    @Override
+    public void onFoundDevice(DeviceType deviceType, String address, String deviceName) {
+        mHeartRateCmdListener.onFoundDevice(deviceType, address, deviceName);
+    }
+
+    @Override
+    public void onScanTimeout(DeviceType deviceType) {
+        mHeartRateCmdListener.onScanTimeout(deviceType);
+    }
+
+    @Override
+    public void onError(DeviceType deviceType, String errorMsg) {
+        mHeartRateCmdListener.onError(deviceType, errorMsg);
+    }
+
+    @Override
+    public void onDisconnected(DeviceType deviceType) {
+        mHeartRateCmdListener.onDisconnected(deviceType);
+    }
+
+    @Override
+    public void onInitialized(DeviceType deviceType) {
+
+        Log.d(LogTag_BLE, "初始化完毕");
+        if (deviceType == DeviceType.A12b) {
+            sendCmd("55aa00");
+            Log.d(LogTag_BLE, "发送[建立连接]命令");
+        } else {
+            Calendar calendar = Calendar.getInstance();
+            String year = String.format("%02x", calendar.get(Calendar.YEAR) - 2000);
+            String month = String.format("%02x", calendar.get(Calendar.MONTH) + 1);
+            String day = String.format("%02x", calendar.get(Calendar.DAY_OF_MONTH));
+            sendCmd("55aa7a" + year + month + day);
+            Log.d(LogTag_BLE, "发送[设置日期]命令");
+        }
+
+
+    }
+
+    @Override
+    public void onCmdResponse(DeviceType deviceType, byte[] result) {
+        receivedResp = true;
+        if (result == null || result.length <= 0) {
+            return;
+        }
+        String resultString = ByteUtils.bytes2HexString(result);
+        mRespString += resultString;
+        Log.d(LogTag_BLE, "mRespString.length=" + mRespString.length());
+        if (FormatUtils.IsA12) {
+            responeA12();
+        } else {
+            responseP10();
+        }
+
+
+    }
+
+    private void responseP10() {
+        if (mRespString.length() > 10) {
+            String lenLowByte = mRespString.substring(6, 8);
+            String lenHighByte = mRespString.substring(8, 10);
+            int len = Integer.parseInt(lenHighByte + lenLowByte, 16);
+            if (mRespString.length() != ((len * 2) + 12)) {
+                return;
+            }
+        }
+        bleHandler.removeMessages(MSG_CHECKRESP);
+
+        if (mRespString.length() == 20 && mRespString.toLowerCase().startsWith("55aa7a")) {
+            Calendar calendar = Calendar.getInstance();
+            String hour = String.format("%02x", calendar.get(Calendar.HOUR_OF_DAY));
+            String minute = String.format("%02x", calendar.get(Calendar.MINUTE));
+            String second = String.format("%02x", calendar.get(Calendar.SECOND));
+            sendCmd("55aa7b" + hour + minute + second);
+            Log.d(LogTag_BLE, "发送[设置时间]命令");
+        } else if (mRespString.length() == 20 && mRespString.toLowerCase().startsWith("55aa7b")) {
+            // 每次开始获取记录条数，都要重置如下全局变量
+            // 1、循环读取记录用的mCurrentIndex
+            // 2、初始化循环读取记录所保存的mEcgRecord
+            // 3、最后刷新记录用的mLastEcgRecord置null，标志着还未存储待刷新记录
+            mHeartRateCmdListener.onLoadBegin();
+            sendCmd("55aa60000000");
+            Log.d(LogTag_BLE, "发送[获取记录条数]命令");
+        } else if (mRespString.length() == 14 && mRespString.toLowerCase().startsWith("55aa60")) {
+            // 示例：55aa6001000162
+            int ecgDataCount = Integer.parseInt(mRespString.substring(10, 12), 16);
+            if (ecgDataCount == 0) {
+                Log.d(LogTag_BLE, "设备中没有数据");
+                mHeartRateCmdListener.onLoadEnd(false, mContext.getString(R.string.error_null_device_data), FormatUtils.type);
+                mHeartRateBle.resetGatt();
+                return;
+            }
+            // 取到总记录条数后，按倒序获取记录，先取做后一条；
+            mCurrentIndex = ecgDataCount;
+            sendCmd(String.format("55aa61%02x0000", mCurrentIndex));
+            Log.d(LogTag_BLE, "发送[获取第" + mCurrentIndex + "条记录信息]命令");
+        } else if (mRespString.length() == 36 && mRespString.toLowerCase().startsWith("55aa61")) {
+            // 示例：55aa610c000f050f021b060000d2154a00e4
+            int day = Integer.parseInt(mRespString.substring(10, 12), 16);
+            int month = Integer.parseInt(mRespString.substring(12, 14), 16);
+            int year = Integer.parseInt(mRespString.substring(14, 16), 16) + 2000;
+            int second = Integer.parseInt(mRespString.substring(16, 18), 16);
+            int minute = Integer.parseInt(mRespString.substring(18, 20), 16);
+            int hour = Integer.parseInt(mRespString.substring(20, 22), 16);
+
+            Calendar calendar = Calendar.getInstance();
+            calendar.set(year, month - 1, day, hour, minute, second);
+            String measureTime = FormatUtils.getDateTimeString(calendar.getTime(), FormatUtils.template_DbDateTime);
+
+            byte ecgHeartRateL = (byte) Integer.parseInt(mRespString.substring(30, 32), 16);
+            byte ecgHeartRateH = (byte) Integer.parseInt(mRespString.substring(32, 34), 16);
+            int ecgHeartRate = (((ecgHeartRateH & 0xff) << 8) + (ecgHeartRateL & 0xff));
+            int ecgResult = 1;//笑脸，P10没有
+            String ecgErrorCode = mRespString.substring(24, 26);
+            Log.d("BLELog===", mRespString + "我是mRespString");
+            Log.d("BLELog===", ecgResult + "我是ecgResult");
+            mHeartRateCmdListener.onRecordInfoResponse(mRespString, measureTime, ecgHeartRate, ecgResult, ecgErrorCode);
+
+            sendCmd(String.format("55aa69%02x0000", mCurrentIndex));
+            Log.d(LogTag_BLE, "发送[获取第" + mCurrentIndex + "条记录心电数据]命令");
+
+        } else if (mRespString.length() == 22512 && mRespString.toLowerCase().startsWith("55aa69")) {
+            String ecgData = mRespString;
+            Log.d("BLELog", "我是55aa69");
+            Log.d("BLELog", "mRespString：  " + mRespString);
+            if (mHeartRateCmdListener.onEcgDataResponse(ecgData)) {
+                sendCmd(String.format("55aa63%02x0000", mCurrentIndex));
+                Log.d(LogTag_BLE, "发送[删除第" + mCurrentIndex + "条记录]命令");
+            } else {
+                mHeartRateCmdListener.onLoadEnd(false, mContext.getString(R.string.error_device_exception) + "5", FormatUtils.type);
+            }
+        } else if (mRespString.length() == 14 && mRespString.toLowerCase().startsWith("55aa63")) {
+            int delResult = Integer.parseInt(mRespString.substring(10, 12), 16);
+            if (delResult != 0) {
+                Log.d(LogTag_BLE, "删除数据出错，mCurrentIndex=" + mCurrentIndex);
+                mHeartRateCmdListener.onLoadEnd(false, mContext.getString(R.string.error_device_exception) + "6", FormatUtils.type);
+                mHeartRateBle.resetGatt();
+                return;
+            }
+            if (mCurrentIndex > 1) {
+                // 删除记录成功后，如果当前索引>1，意味着后面还有记录需要循环读取下一套记录
+                // 同时，应把全局变量mEcgRecord重新初始化
+                mCurrentIndex--;
+                sendCmd(String.format("55aa61%02x0000", mCurrentIndex));
+                Log.d(LogTag_BLE, "发送[获取第" + mCurrentIndex + "条记录信息]命令");
+            } else {
+                // 否则，意味着设备数据读取完毕，停止蓝牙连接，发送消息刷新界面
+                Log.d(LogTag_BLE, "数据读取完毕");
+                mHeartRateCmdListener.onLoadEnd(true, "", FormatUtils.type);
+                mHeartRateBle.resetGatt();
+            }
+        }
+    }
+
+    private void responeA12() {
+        if (mRespString.equalsIgnoreCase("55aa0000")) {// 建立连接响应
+            Log.d("BLELog", "我是55aa00");
+            cancelCheckRespMsg();
+            Log.d(LogTag_BLE, "收到[建立连接]响应");
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            Calendar calendar = Calendar.getInstance();
+            String year = String.format("%02x", calendar.get(Calendar.YEAR) - 2000);
+            String month = String.format("%02x", calendar.get(Calendar.MONTH) + 1);
+            String day = String.format("%02x", calendar.get(Calendar.DAY_OF_MONTH));
+            String hour = String.format("%02x", calendar.get(Calendar.HOUR_OF_DAY));
+            String minute = String.format("%02x", calendar.get(Calendar.MINUTE));
+            String second = String.format("%02x", calendar.get(Calendar.SECOND));
+            sendCmd("55aa0b" + year + month + day + hour + minute + second);
+            Log.d(LogTag_BLE, "发送[设置日期时间]命令");
+        } else if (mRespString.toLowerCase().startsWith("55aa0b")) {// 设置日期时间响应
+            //示例数据 55aa0b13080e0c303a
+            Log.d("BLELog", "我是55aa0b");
+            cancelCheckRespMsg();
+            Log.d(LogTag_BLE, "收到[设置日期时间]响应");
+            mHeartRateCmdListener.onLoadBegin();
+            sendCmd("55aa03");
+            Log.d(LogTag_BLE, "发送[获取索引表]命令");
+        } else if (mRespString.toLowerCase().startsWith("55aa03")) {// 获取索引表响应
+            if (mRespString.endsWith("4544")) {
+                //示例数据55aa0301c8cc4544
+                Log.d("BLELog", "我是55aa03");
+                cancelCheckRespMsg();
+                Log.d(LogTag_BLE, "获取索引表响应：" + mRespString);
+                if (mRespString.length() == 12) {
+                    Log.d(LogTag_BLE, "设备中没有数据");
+                    //mHeartRateCmdListener.onLoadEnd(false, mContext.getString(R.string.error_null_device_data));
+                    mHeartRateCmdListener.onLoadEnd(true, "", FormatUtils.type);
+                    mHeartRateBle.resetGatt();
+                    return;
+                }
+                lastIndex = mRespString.substring(8, 10);
+                String cmd = "55aa04" + lastIndex;
+                sendCmd(cmd);
+                Log.d(LogTag_BLE, "发送“获取记录属性信息”命令：" + cmd);
+            }
+        } else if (mRespString.toLowerCase().startsWith("55aa04")) {// 获取记录属性信息响应
+            if (mRespString.endsWith("4544")) {
+                //示例数据 55aa045d13080e0c2f5b0001000054754544
+                Log.d("BLELog", "我是55aa04");
+                cancelCheckRespMsg();
+                Log.d(LogTag_BLE, "获取记录属性信息响应：" + mRespString);
+
+                int year = Integer.parseInt(mRespString.substring(8, 10), 16) + 2000;
+                int month = Integer.parseInt(mRespString.substring(10, 12), 16);
+                int day = Integer.parseInt(mRespString.substring(12, 14), 16);
+                int hour = Integer.parseInt(mRespString.substring(14, 16), 16);
+                int minute = Integer.parseInt(mRespString.substring(16, 18), 16);
+
+                Calendar calendar = Calendar.getInstance();
+                calendar.set(year, month - 1, day, hour, minute, 0);
+                String measureTime = FormatUtils.getDateTimeString(calendar.getTime(), FormatUtils.template_DbDateTime);
+
+                int ecgResult = Integer.valueOf(mRespString.substring(24, 26));
+                byte ecgHeartRateH = (byte) Integer.parseInt(mRespString.substring(20, 22), 16);
+                byte ecgHeartRateL = (byte) Integer.parseInt(mRespString.substring(18, 20), 16);
+                int ecgHeartRate = (((ecgHeartRateH & 0xff) << 8) + (ecgHeartRateL & 0xff));
+                String ecgErrorCode = mRespString.substring(28, 30);
+                Log.d("BLELog", "A12 mRespString: " + mRespString);
+                Log.d(LogTag_BLE, "日期时间" + measureTime + "哭脸笑脸：" + ecgResult + "；心率："
+                        + ecgHeartRate + "；异常代码：" + ecgErrorCode);
+                mHeartRateCmdListener.onRecordInfoResponse(mRespString, measureTime, ecgHeartRate, ecgResult, ecgErrorCode);
+
+                String cmd = "55aa05" + lastIndex;
+                sendCmd(cmd);
+                Log.d(LogTag_BLE, "发送[获取心电数据]命令：" + cmd);
+            }
+        } else if (mRespString.toLowerCase().startsWith("55aa05")) {// 获取心电数据响应
+            if (mRespString.length() == 15042) {
+                Log.d("BLELog", "我是55aa05");
+                cancelCheckRespMsg();
+                String ecgData = mRespString;
+                if (mHeartRateCmdListener.onEcgDataResponse(ecgData)) {
+                    String cmd = "55aa0c" + lastIndex;
+                    sendCmd(cmd);
+                    Log.d(LogTag_BLE, "发送[删除记录]命令：" + cmd);
+                } else {
+                    mHeartRateCmdListener.onLoadEnd(false, mContext.getString(R.string.error_device_exception) + "3", FormatUtils.type);
+                }
+            }
+        } else if (mRespString.toLowerCase().startsWith("55aa0c")) {
+            if (mRespString.endsWith("4544")) {
+                //示例数据  55aa0c010d4544
+                Log.d("BLELog", "我是55aa0c");
+                cancelCheckRespMsg();
+                int delResult = Integer.parseInt(mRespString.substring(6, 8), 16);
+                if (delResult != 1) {
+                    Log.d(LogTag_BLE, "删除数据出错，Index=" + lastIndex);
+                    mHeartRateCmdListener.onLoadEnd(false, mContext.getString(R.string.error_device_exception) + "4", FormatUtils.type);
+                    mHeartRateBle.resetGatt();
+                    return;
+                }
+
+                sendCmd("55aa03");
+                Log.d(LogTag_BLE, "发送[获取索引表]命令");
+            }
+        }
+    }
+
+    private void sendCmd(String cmd) {
+        mRespString = "";
+        receivedResp = false;
+        bleHandler.sendEmptyMessageDelayed(MSG_CHECKRESP, CMD_RESPONSE_TIMEOUT);
+        Log.d(LogTag_BLE, "发送[等待命令响应超时]消息");
+        mHeartRateBle.sendCmd(cmd);
+    }
+
+    private void cmdRespTimeout() {
+        // 发送命令后，在设定超时时间内没有得到正确响应
+        Log.d(LogTag_BLE, "3等待命令响应超时");
+        mHeartRateCmdListener.onLoadEnd(false, mContext.getString(R.string.error_device_exception) + "2", FormatUtils.type);
+        mHeartRateBle.resetGatt();
+    }
+
+    private void cancelCheckRespMsg() {
+        bleHandler.removeMessages(MSG_CHECKRESP);
+        Log.d(LogTag_BLE, "4取消[等待命令响应超时]消息");
+    }
+}

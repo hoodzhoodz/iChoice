@@ -1,0 +1,235 @@
+package com.choicemmed.blelibrary.gatt;
+
+import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
+import android.bluetooth.BluetoothGattService;
+import android.bluetooth.BluetoothProfile;
+import android.util.Log;
+
+import com.choicemmed.blelibrary.base.BaseGattCallback;
+import com.choicemmed.blelibrary.base.DeviceType;
+import com.choicemmed.blelibrary.base.GattListener;
+import com.choicemmed.blelibrary.utils.ByteUtils;
+import com.choicemmed.blelibrary.utils.FormatUtils;
+
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
+
+/**
+ * Created by Yu Baoxiang on 2015/5/12.
+ */
+public class HeartRateGattCallback extends BaseGattCallback {
+
+    private static final String Service_UUID = "0000fee9-0000-1000-8000-00805f9b34fb";
+    private static final String P10Service_UUID = "0000ff00-0000-1000-8000-00805f9b34fb";
+    private static final String P10Characteristic_UUID_Notify = "0000ff01-0000-1000-8000-00805f9b34fb";
+    private static final String P10Characteristic_UUID_Write = "0000ff02-0000-1000-8000-00805f9b34fb";
+    private static final String Characteristic_UUID_Write = "d44bc439-abfd-45a2-b575-925416129600";
+    private static final String Characteristic_UUID_1 = "d44bc439-abfd-45a2-b575-925416129601";
+    private static final String Characteristic_UUID_2 = "d44bc439-abfd-45a2-b575-925416129602";
+    private static final String Characteristic_UUID_3 = "d44bc439-abfd-45a2-b575-925416129603";
+    private static final String Characteristic_UUID_4 = "d44bc439-abfd-45a2-b575-925416129604";
+    private static final String Characteristic_UUID_5 = "d44bc439-abfd-45a2-b575-925416129605";
+    private static final String Characteristic_UUID_6 = "d44bc439-abfd-45a2-b575-925416129606";
+    private static final String Characteristic_UUID_7 = "d44bc439-abfd-45a2-b575-925416129607";
+
+    private static BluetoothGattService gattService;
+
+
+    public HeartRateGattCallback(GattListener listener) {
+        super(listener);
+    }
+
+    @Override
+    public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
+        if (status != BluetoothGatt.GATT_SUCCESS) {
+            Log.d(LogTag_BLE, "异常：改变蓝牙状态失败");
+            return;
+        }
+        switch (newState) {
+            case BluetoothProfile.STATE_CONNECTED:
+                Log.d(LogTag_BLE, "蓝牙已连接");
+                if (gatt.discoverServices()) {
+                    Log.d(LogTag_BLE, "发现服务启动");
+                } else {
+                    Log.d(LogTag_BLE, "异常：开始发现服务失败");
+                    onError("异常：开始发现服务失败");
+                }
+                break;
+
+            case BluetoothProfile.STATE_DISCONNECTED:
+                Log.d(LogTag_BLE, "蓝牙已断开");
+                onDisconnected();
+                break;
+            default:
+        }
+    }
+
+    @Override
+    public void onServicesDiscovered(BluetoothGatt gatt, int status) {
+        if (status != BluetoothGatt.GATT_SUCCESS) {
+            Log.d(LogTag_BLE, "异常：发现服务失败，status=" + status);
+            onError("异常：发现服务失败，status=" + status);
+            return;
+        }
+        Log.d(LogTag_BLE, "发现服务完毕");
+        List<BluetoothGattService> gattServices = gatt.getServices();
+        boolean foundService = false;
+        for (BluetoothGattService service : gattServices) {
+            String uuid = service.getUuid().toString().toLowerCase(Locale.getDefault());
+
+            if (uuid.startsWith(Service_UUID.toLowerCase(Locale.getDefault()))) {
+                if (FormatUtils.IsA12) {
+                    setDeviceType(DeviceType.A12b);
+                } else {
+                    setDeviceType(DeviceType.P10ba);
+                }
+
+                foundService = true;
+                BluetoothGattCharacteristic characteristic = service.getCharacteristic(UUID.fromString(Characteristic_UUID_1));
+                if (setCharacteristicNotification(gatt, characteristic, true)) {
+                    gattService = service;
+                    Log.d(LogTag_BLE, "开始监听特征1成功");
+                } else {
+                    Log.d(LogTag_BLE, "异常：开始监听特征1失败");
+                    onError("异常：开始监听特征1失败");
+                }
+            }
+
+
+            if (uuid.startsWith(P10Service_UUID.toLowerCase(Locale.getDefault()))) {
+                setDeviceType(DeviceType.P10b);
+                foundService = true;
+                BluetoothGattCharacteristic characteristic = service.getCharacteristic(UUID.fromString(P10Characteristic_UUID_Notify));
+                if (setCharacteristicNotification(gatt, characteristic, true)) {
+                    gattService = service;
+                    Log.d(LogTag_BLE, "开始监听ff01成功");
+                } else {
+                    Log.d(LogTag_BLE, "异常：开始监听ff01失败");
+                    onError("异常：开始监听ff01失败");
+                }
+            }
+        }
+        if (!foundService) {
+            Log.d(LogTag_BLE, "异常：发现的服务中不包含心电服务");
+            onError("异常：发现的服务中不包含心电服务");
+        }
+    }
+
+    @Override
+    public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
+        if (status != BluetoothGatt.GATT_SUCCESS) {
+            Log.d(LogTag_BLE, "异常:写描述符失败，status=" + status);
+            onError("异常:写描述符失败，status=" + status);
+            return;
+        }
+        Log.d(LogTag_BLE, "写描述符成功");
+        if (descriptor.getCharacteristic().getUuid().equals(UUID.fromString(P10Characteristic_UUID_Notify))) {
+            Log.d(LogTag_BLE, "监听ff01成功");
+            onInitialized();
+        } else {
+            a10setNotificantion(gatt, descriptor);
+        }
+    }
+
+    private void a10setNotificantion(BluetoothGatt gatt, BluetoothGattDescriptor descriptor) {
+        BluetoothGattService service = descriptor.getCharacteristic().getService();
+        if (descriptor.getCharacteristic().getUuid().equals(UUID.fromString(Characteristic_UUID_1))) {
+            Log.d(LogTag_BLE, "监听特征1成功");
+            BluetoothGattCharacteristic characteristic = service.getCharacteristic(UUID.fromString(Characteristic_UUID_2));
+            if (setCharacteristicNotification(gatt, characteristic, true)) {
+                Log.d(LogTag_BLE, "开始监听特征2");
+            } else {
+                Log.d(LogTag_BLE, "异常：开始监听特征2失败");
+                onError("异常：开始监听特征2失败");
+            }
+        } else if (descriptor.getCharacteristic().getUuid().equals(UUID.fromString(Characteristic_UUID_2))) {
+            Log.d(LogTag_BLE, "监听特征2成功");
+            BluetoothGattCharacteristic characteristic = service.getCharacteristic(UUID.fromString(Characteristic_UUID_3));
+            if (setCharacteristicNotification(gatt, characteristic, true)) {
+                Log.d(LogTag_BLE, "开始监听特征3");
+            } else {
+                Log.d(LogTag_BLE, "异常：开始监听特征3失败");
+                onError("异常：开始监听特征3失败");
+            }
+        } else if (descriptor.getCharacteristic().getUuid().equals(UUID.fromString(Characteristic_UUID_3))) {
+            Log.d(LogTag_BLE, "监听特征3成功");
+            BluetoothGattCharacteristic characteristic = service.getCharacteristic(UUID.fromString(Characteristic_UUID_4));
+            if (setCharacteristicNotification(gatt, characteristic, true)) {
+                Log.d(LogTag_BLE, "开始监听特征4");
+            } else {
+                Log.d(LogTag_BLE, "异常：开始监听特征4失败");
+                onError("异常：开始监听特征4失败");
+            }
+        } else if (descriptor.getCharacteristic().getUuid().equals(UUID.fromString(Characteristic_UUID_4))) {
+            Log.d(LogTag_BLE, "监听特征4成功");
+            BluetoothGattCharacteristic characteristic = service.getCharacteristic(UUID.fromString(Characteristic_UUID_5));
+            if (setCharacteristicNotification(gatt, characteristic, true)) {
+                Log.d(LogTag_BLE, "开始监听特征5");
+            } else {
+                Log.d(LogTag_BLE, "异常：开始监听特征5失败");
+                onError("异常：开始监听特征5失败");
+            }
+        } else if (descriptor.getCharacteristic().getUuid().equals(UUID.fromString(Characteristic_UUID_5))) {
+            Log.d(LogTag_BLE, "监听特征5成功");
+            BluetoothGattCharacteristic characteristic = service.getCharacteristic(UUID.fromString(Characteristic_UUID_6));
+            if (setCharacteristicNotification(gatt, characteristic, true)) {
+                Log.d(LogTag_BLE, "开始监听特征6");
+            } else {
+                Log.d(LogTag_BLE, "异常：开始监听特征6失败");
+                onError("异常：开始监听特征6失败");
+            }
+        } else if (descriptor.getCharacteristic().getUuid().equals(UUID.fromString(Characteristic_UUID_6))) {
+            Log.d(LogTag_BLE, "监听特征6成功");
+            BluetoothGattCharacteristic characteristic = service.getCharacteristic(UUID.fromString(Characteristic_UUID_7));
+            if (setCharacteristicNotification(gatt, characteristic, true)) {
+                Log.d(LogTag_BLE, "开始监听特征7");
+            } else {
+                Log.d(LogTag_BLE, "异常：开始监听特征7失败");
+                onError("异常：开始监听特征7失败");
+            }
+        } else if (descriptor.getCharacteristic().getUuid().equals(UUID.fromString(Characteristic_UUID_7))) {
+            Log.d(LogTag_BLE, "监听特征7成功");
+            onInitialized();
+        }
+    }
+
+    @Override
+    public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
+        if (status != BluetoothGatt.GATT_SUCCESS) {
+            Log.d(LogTag_BLE, "异常：写特征状态失败，status=" + status);
+            onError("异常：写特征状态失败，status=" + status);
+            return;
+        }
+        Log.d(LogTag_BLE, "写特征成功");
+    }
+
+    @Override
+    public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
+        final byte[] data = characteristic.getValue();
+        if (data != null && data.length > 0) {
+            String dataString = ByteUtils.bytes2HexString(data);
+            Log.d(LogTag_BLE, "接收数据：" + dataString);
+            onDataRecived(data);
+        }
+    }
+
+    public static boolean sendCmd(BluetoothGatt gatt, String cmd) {
+        if (gatt == null || gattService == null) {
+            return false;
+        }
+        Log.d(LogTag_BLE, "发送命令开始：" + cmd);
+        byte[] value = ByteUtils.cmdString2Bytes(cmd, true);
+        BluetoothGattCharacteristic writeCharacteristic = null;
+        if (deviceType == DeviceType.A12b) {
+            writeCharacteristic = gattService.getCharacteristic(UUID.fromString(Characteristic_UUID_Write));
+        } else {
+            writeCharacteristic = gattService.getCharacteristic(UUID.fromString(P10Characteristic_UUID_Write));
+        }
+        writeCharacteristic.setValue(value);
+        Log.d(LogTag_BLE, "发送命令完毕：" + cmd);
+        return gatt.writeCharacteristic(writeCharacteristic);
+    }
+}
